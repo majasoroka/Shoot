@@ -3,104 +3,204 @@
   margin: 0;
   padding: 0;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #121212;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #0b0c10;
   color: #ffffff;
   display: flex;
   justify-content: center;
-  padding: 20px;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 10px;
 }
 
 .game-container {
   width: 100%;
-  max-width: 900px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
-/* HUD Header */
+/* Tactical HUD Header */
 .hud {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #1e1e1e;
-  padding: 15px 25px;
-  border-radius: 10px;
-  border: 1px solid #333;
+  background: linear-gradient(145deg, #1f2833, #161c24);
+  padding: 12px 15px;
+  border-radius: 12px;
+  border: 1px solid #45a29e;
+  box-shadow: 0 4px 15px rgba(0, 255, 204, 0.1);
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-box .label {
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  color: #c5c6c7;
+}
+
+.stat-box .val {
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 800;
+  color: #66fcf1;
 }
 
-.hud span {
-  color: #00ffcc;
-}
-
-#start-btn, #restart-btn {
-  background-color: #00ffcc;
-  color: #121212;
+.glow-btn {
+  background: linear-gradient(135deg, #66fcf1, #45a29e);
+  color: #0b0c10;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: bold;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 900;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: transform 0.1s, background-color 0.2s;
+  box-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+  transition: transform 0.1s, filter 0.2s;
 }
 
-#start-btn:hover, #restart-btn:hover {
-  background-color: #00cca3;
-  transform: scale(1.05);
+.glow-btn:active {
+  transform: scale(0.95);
 }
 
-/* Game Playing Area */
+/* Main Arena */
 #game-area {
   position: relative;
   width: 100%;
-  height: 480px;
-  background-color: #181824;
-  border: 2px solid #333;
-  border-radius: 12px;
+  height: 420px;
+  background: radial-gradient(circle at center, #1b263b 0%, #0d1b2a 100%);
+  border: 2px solid #45a29e;
+  border-radius: 16px;
   overflow: hidden;
-  cursor: crosshair;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
 }
 
-/* Target Heads */
+/* Recoil Screen Shake */
+#game-area.recoil {
+  animation: screenRecoil 0.08s ease-in-out;
+}
+
+@keyframes screenRecoil {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(4px) scale(0.99); }
+  100% { transform: translateY(0); }
+}
+
+/* Muzzle Flash Effect */
+.flash-effect {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  background: radial-gradient(circle, rgba(255,230,0,0.9) 0%, rgba(255,100,0,0.6) 40%, rgba(0,0,0,0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+  z-index: 20;
+}
+
+.flash-effect.active {
+  animation: flashAnim 0.1s ease-out forwards;
+}
+
+@keyframes flashAnim {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+}
+
+/* Floating Points (+10 Popup) */
+.hit-popup {
+  position: absolute;
+  font-weight: 900;
+  font-size: 1.2rem;
+  color: #66fcf1;
+  text-shadow: 0 0 5px #000;
+  pointer-events: none;
+  z-index: 25;
+  animation: floatUp 0.6s ease-out forwards;
+}
+
+.hit-popup.gold {
+  color: #ffd700;
+  font-size: 1.5rem;
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -40px) scale(1.3); }
+}
+
+/* Target Head Animations */
 .target-head {
   position: absolute;
-  width: 80px;
-  height: 80px;
   object-fit: contain;
-  cursor: crosshair;
-  transition: transform 0.1s;
-  animation: popIn 0.2s ease-out;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+  animation: floatBob 2s infinite ease-in-out alternate, popUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
 }
 
-.target-head:active {
-  transform: scale(0.85);
+.target-head.golden {
+  filter: drop-shadow(0 0 10px #ffd700) brightness(1.2);
 }
 
-@keyframes popIn {
-  from { transform: scale(0); }
-  to { transform: scale(1); }
+@keyframes popUp {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes floatBob {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-8px); }
+}
+
+/* Head Shot Down Effect */
+.target-head.shot {
+  animation: headShotFall 0.35s ease-in forwards !important;
+  pointer-events: none;
+}
+
+@keyframes headShotFall {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.3) rotate(180deg); filter: brightness(2) drop-shadow(0 0 15px red); }
+  100% { transform: translateY(60px) scale(0) rotate(360deg); opacity: 0; }
 }
 
 /* Overlays */
 .overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.75);
+  inset: 0;
+  background: rgba(11, 12, 16, 0.88);
+  backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 15px;
-  z-index: 10;
+  padding: 20px;
+  text-align: center;
+  gap: 12px;
+  z-index: 30;
+}
+
+.overlay h2 {
+  color: #66fcf1;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.sub-hint {
+  font-size: 0.8rem;
+  color: #ffd700;
 }
 
 .hidden {
@@ -109,61 +209,60 @@ body {
 
 /* Shop Section */
 .shop {
-  background: #1e1e1e;
-  padding: 20px;
-  border-radius: 10px;
+  background: linear-gradient(145deg, #1f2833, #161c24);
+  padding: 15px;
+  border-radius: 12px;
   border: 1px solid #333;
 }
 
 .shop h2 {
-  margin-bottom: 15px;
-  font-size: 1.3rem;
-  color: #ff0055;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: #c5c6c7;
+  margin-bottom: 12px;
+  text-align: center;
 }
 
 .shop-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .shop-card {
-  background: #2a2a2a;
-  padding: 15px;
+  background: #0b0c10;
+  padding: 10px 14px;
   border-radius: 8px;
   display: flex;
-  flex-direction: column;
   justify-content: space-between;
-  gap: 10px;
-  border: 1px solid #444;
+  align-items: center;
+  border: 1px solid #1f2833;
 }
 
-.shop-card h3 {
-  font-size: 1.1rem;
+.card-info h3 {
+  font-size: 0.9rem;
+  color: #66fcf1;
 }
 
-.shop-card p {
-  font-size: 0.85rem;
-  color: #aaa;
+.card-info p {
+  font-size: 0.75rem;
+  color: #888c8d;
 }
 
 .buy-btn {
-  background-color: #ff0055;
-  color: #fff;
+  background-color: #45a29e;
+  color: #0b0c10;
   border: none;
   padding: 8px 12px;
-  border-radius: 5px;
-  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.8rem;
   font-weight: bold;
-  transition: opacity 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .buy-btn:disabled {
-  background-color: #555;
+  background-color: #222;
+  color: #555;
   cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.buy-btn:not(:disabled):hover {
-  background-color: #d00045;
 }
