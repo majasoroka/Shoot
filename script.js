@@ -6,16 +6,25 @@ const headImages = [
   'images/head5.png'
 ];
 
-// Audio FX Synthesizer (No external mp3 files needed)
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Audio Context Synthesizer (Lazy initialized on first tap for iOS Safari)
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
 
 function playSound(type) {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  initAudio();
+  if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.connect(gain);
   gain.connect(audioCtx.destination);
-
   const now = audioCtx.currentTime;
 
   if (type === 'shoot') {
@@ -42,10 +51,18 @@ function playSound(type) {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
     osc.start(now);
     osc.stop(now + 0.2);
+  } else if (type === 'bomb') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+    gain.gain.setValueAtTime(0.7, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    osc.start(now);
+    osc.stop(now + 0.4);
   }
 }
 
-// State Variables
+// Game State Variables
 let points = 0;
 let pointsMultiplier = 1;
 let baseGameTime = 30;
@@ -96,99 +113,113 @@ const buyTurretBtn = document.getElementById('buy-turret');
 const buySlowBtn = document.getElementById('buy-slow');
 const buyFrenzyBtn = document.getElementById('buy-frenzy');
 
-// Event Handlers
-startBtn.addEventListener('click', startGame);
-mainStartBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', startGame);
+// Event Listeners (Safely Bound)
+if (startBtn) startBtn.addEventListener('click', startGame);
+if (mainStartBtn) mainStartBtn.addEventListener('click', startGame);
+if (restartBtn) restartBtn.addEventListener('click', startGame);
 
-shopToggleBtn.addEventListener('click', openShop);
-closeShopBtn.addEventListener('click', closeShop);
+if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
+if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 
-gameArea.addEventListener('pointerdown', (e) => {
-  if (!isGameActive || isPaused) return;
-  triggerGunshotFX(e.clientX, e.clientY);
-  playSound('shoot');
-});
+if (gameArea) {
+  gameArea.addEventListener('pointerdown', (e) => {
+    if (!isGameActive || isPaused) return;
+    triggerGunshotFX(e.clientX, e.clientY);
+    playSound('shoot');
+  });
+}
 
-// Upgrades Implementation
-buyMultiplierBtn.addEventListener('click', () => {
-  if (points >= costs.multiplier) {
-    points -= costs.multiplier;
-    pointsMultiplier *= 2;
-    costs.multiplier = Math.floor(costs.multiplier * 2.5);
-    buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-    playSound('buy');
-    updateUI();
-  }
-});
-
-buyTimeBtn.addEventListener('click', () => {
-  if (points >= costs.time) {
-    points -= costs.time;
-    remainingTime += 10; // Adds 10 seconds immediately!
-    baseGameTime += 10;  // Extends base time for future rounds!
-    costs.time = Math.floor(costs.time * 2);
-    buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
-    playSound('buy');
-    updateUI();
-  }
-});
-
-buySizeBtn.addEventListener('click', () => {
-  if (points >= costs.size && targetSize < 140) {
-    points -= costs.size;
-    targetSize = Math.floor(targetSize * 1.25);
-    costs.size = Math.floor(costs.size * 2);
-    buySizeBtn.innerText = targetSize >= 140 ? 'MAXED' : `Buy (${costs.size} Pts)`;
-    playSound('buy');
-    updateUI();
-  }
-});
-
-buyTurretBtn.addEventListener('click', () => {
-  if (points >= costs.turret && !autoTurretActive) {
-    points -= costs.turret;
-    autoTurretActive = true;
-    buyTurretBtn.innerText = 'OWNED';
-    playSound('buy');
-    if (isGameActive && !isPaused) startTurret();
-    updateUI();
-  }
-});
-
-buySlowBtn.addEventListener('click', () => {
-  if (points >= costs.slow) {
-    points -= costs.slow;
-    headLingerTime = 3500;
-    buySlowBtn.innerText = 'ACTIVE';
-    buySlowBtn.disabled = true;
-    playSound('buy');
-    updateUI();
-  }
-});
-
-buyFrenzyBtn.addEventListener('click', () => {
-  if (points >= costs.frenzy && isGameActive) {
-    points -= costs.frenzy;
-    for (let i = 0; i < 4; i++) {
-      spawnTarget();
+// Shop Upgrades
+if (buyMultiplierBtn) {
+  buyMultiplierBtn.addEventListener('click', () => {
+    if (points >= costs.multiplier) {
+      points -= costs.multiplier;
+      pointsMultiplier *= 2;
+      costs.multiplier = Math.floor(costs.multiplier * 2.5);
+      buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
+      playSound('buy');
+      updateUI();
     }
-    playSound('buy');
-    updateUI();
-  }
-});
+  });
+}
+
+if (buyTimeBtn) {
+  buyTimeBtn.addEventListener('click', () => {
+    if (points >= costs.time) {
+      points -= costs.time;
+      remainingTime += 10;
+      baseGameTime += 10;
+      costs.time = Math.floor(costs.time * 2);
+      buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
+      playSound('buy');
+      updateUI();
+    }
+  });
+}
+
+if (buySizeBtn) {
+  buySizeBtn.addEventListener('click', () => {
+    if (points >= costs.size && targetSize < 140) {
+      points -= costs.size;
+      targetSize = Math.floor(targetSize * 1.25);
+      costs.size = Math.floor(costs.size * 2);
+      buySizeBtn.innerText = targetSize >= 140 ? 'MAXED' : `Buy (${costs.size} Pts)`;
+      playSound('buy');
+      updateUI();
+    }
+  });
+}
+
+if (buyTurretBtn) {
+  buyTurretBtn.addEventListener('click', () => {
+    if (points >= costs.turret && !autoTurretActive) {
+      points -= costs.turret;
+      autoTurretActive = true;
+      buyTurretBtn.innerText = 'OWNED';
+      playSound('buy');
+      if (isGameActive && !isPaused) startTurret();
+      updateUI();
+    }
+  });
+}
+
+if (buySlowBtn) {
+  buySlowBtn.addEventListener('click', () => {
+    if (points >= costs.slow) {
+      points -= costs.slow;
+      headLingerTime = 3500;
+      buySlowBtn.innerText = 'ACTIVE';
+      buySlowBtn.disabled = true;
+      playSound('buy');
+      updateUI();
+    }
+  });
+}
+
+if (buyFrenzyBtn) {
+  buyFrenzyBtn.addEventListener('click', () => {
+    if (points >= costs.frenzy && isGameActive && !isPaused) {
+      points -= costs.frenzy;
+      for (let i = 0; i < 4; i++) {
+        spawnEntity();
+      }
+      playSound('buy');
+      updateUI();
+    }
+  });
+}
 
 function updateUI() {
-  pointsDisplay.innerText = points;
-  multiplierDisplay.innerText = `${pointsMultiplier}x`;
-  timeDisplay.innerText = `${remainingTime}s`;
+  if (pointsDisplay) pointsDisplay.innerText = points;
+  if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
+  if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
 
-  buyMultiplierBtn.disabled = points < costs.multiplier;
-  buyTimeBtn.disabled = points < costs.time;
-  buySizeBtn.disabled = points < costs.size || targetSize >= 140;
-  buyTurretBtn.disabled = points < costs.turret || autoTurretActive;
-  buySlowBtn.disabled = points < costs.slow || headLingerTime > 2000;
-  buyFrenzyBtn.disabled = points < costs.frenzy || !isGameActive;
+  if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
+  if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
+  if (buySizeBtn) buySizeBtn.disabled = points < costs.size || targetSize >= 140;
+  if (buyTurretBtn) buyTurretBtn.disabled = points < costs.turret || autoTurretActive;
+  if (buySlowBtn) buySlowBtn.disabled = points < costs.slow || headLingerTime > 2000;
+  if (buyFrenzyBtn) buyFrenzyBtn.disabled = points < costs.frenzy || !isGameActive;
 }
 
 function openShop() {
@@ -197,12 +228,12 @@ function openShop() {
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
   if (turretInterval) clearInterval(turretInterval);
-  shopModal.classList.remove('hidden');
+  if (shopModal) shopModal.classList.remove('hidden');
   updateUI();
 }
 
 function closeShop() {
-  shopModal.classList.add('hidden');
+  if (shopModal) shopModal.classList.add('hidden');
   if (isGameActive) {
     isPaused = false;
     resumeTimers();
@@ -212,25 +243,28 @@ function closeShop() {
 function resumeTimers() {
   gameTimer = setInterval(() => {
     remainingTime--;
-    timeDisplay.innerText = `${remainingTime}s`;
+    if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
     if (remainingTime <= 0) endGame();
   }, 1000);
 
-  spawnInterval = setInterval(spawnTarget, 850);
+  spawnInterval = setInterval(spawnEntity, 800);
   if (autoTurretActive) startTurret();
 }
 
 function startGame() {
+  initAudio();
   isGameActive = true;
   isPaused = false;
+  points = 0;
+  pointsMultiplier = 1;
   remainingTime = baseGameTime;
   updateUI();
 
-  startScreen.classList.add('hidden');
-  shopModal.classList.add('hidden');
-  gameOverScreen.classList.add('hidden');
+  if (startScreen) startScreen.classList.add('hidden');
+  if (shopModal) shopModal.classList.add('hidden');
+  if (gameOverScreen) gameOverScreen.classList.add('hidden');
 
-  clearTargets();
+  clearEntities();
   resumeTimers();
 }
 
@@ -242,32 +276,37 @@ function startTurret() {
 function triggerGunshotFX(x, y) {
   if (navigator.vibrate) navigator.vibrate(25);
 
-  gameArea.classList.remove('recoil');
-  void gameArea.offsetWidth;
-  gameArea.classList.add('recoil');
+  if (gameArea) {
+    gameArea.classList.remove('recoil');
+    void gameArea.offsetWidth;
+    gameArea.classList.add('recoil');
 
-  const rect = gameArea.getBoundingClientRect();
-  const flashX = x - rect.left;
-  const flashY = y - rect.top;
+    const rect = gameArea.getBoundingClientRect();
+    const flashX = x - rect.left;
+    const flashY = y - rect.top;
 
-  muzzleFlash.style.left = `${flashX}px`;
-  muzzleFlash.style.top = `${flashY}px`;
-  muzzleFlash.classList.remove('active');
-  void muzzleFlash.offsetWidth;
-  muzzleFlash.classList.add('active');
+    if (muzzleFlash) {
+      muzzleFlash.style.left = `${flashX}px`;
+      muzzleFlash.style.top = `${flashY}px`;
+      muzzleFlash.classList.remove('active');
+      void muzzleFlash.offsetWidth;
+      muzzleFlash.classList.add('active');
+    }
 
-  spawnParticles(flashX, flashY);
+    spawnParticles(flashX, flashY, false);
+  }
 }
 
-function spawnParticles(x, y) {
-  for (let i = 0; i < 6; i++) {
+function spawnParticles(x, y, isBomb) {
+  for (let i = 0; i < (isBomb ? 12 : 6); i++) {
     const p = document.createElement('div');
     p.classList.add('particle');
+    if (isBomb) p.classList.add('bomb-part');
     p.style.left = `${x}px`;
     p.style.top = `${y}px`;
 
     const angle = Math.random() * Math.PI * 2;
-    const dist = 25 + Math.random() * 35;
+    const dist = (isBomb ? 40 : 25) + Math.random() * 40;
     p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
     p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
 
@@ -276,42 +315,66 @@ function spawnParticles(x, y) {
   }
 }
 
-function spawnTarget() {
-  if (!isGameActive || isPaused) return;
-  if (document.querySelectorAll('.target-head:not(.shot)').length >= 5) return;
+function spawnEntity() {
+  if (!isGameActive || isPaused || !gameArea) return;
+  if (gameArea.querySelectorAll('.target-head:not(.shot), .target-bomb').length >= 5) return;
 
-  const target = document.createElement('img');
-  const randomHead = headImages[Math.floor(Math.random() * headImages.length)];
-  const isGolden = Math.random() < 0.15;
+  // 20% chance to spawn a Bomb instead of a target head
+  const isBomb = Math.random() < 0.20;
 
-  target.src = randomHead;
-  target.classList.add('target-head');
-  if (isGolden) target.classList.add('golden');
+  if (isBomb) {
+    const bomb = document.createElement('div');
+    bomb.classList.add('target-bomb');
+    bomb.innerHTML = '💣';
 
-  target.style.width = `${targetSize}px`;
-  target.style.height = `${targetSize}px`;
+    const maxX = gameArea.clientWidth - 70;
+    const maxY = gameArea.clientHeight - 70;
+    bomb.style.left = `${Math.floor(Math.random() * maxX) + 10}px`;
+    bomb.style.top = `${Math.floor(Math.random() * maxY) + 10}px`;
 
-  const maxX = gameArea.clientWidth - targetSize - 20;
-  const maxY = gameArea.clientHeight - targetSize - 20;
-  const randomX = Math.floor(Math.random() * maxX) + 10;
-  const randomY = Math.floor(Math.random() * maxY) + 10;
+    bomb.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (isPaused) return;
+      hitBomb(bomb, e.clientX, e.clientY);
+    });
 
-  target.style.left = `${randomX}px`;
-  target.style.top = `${randomY}px`;
+    gameArea.appendChild(bomb);
 
-  target.addEventListener('pointerdown', (e) => {
-    e.stopPropagation();
-    if (target.classList.contains('shot') || isPaused) return;
-    hitTarget(target, e.clientX, e.clientY, isGolden);
-  });
+    setTimeout(() => {
+      if (bomb.parentNode && !isPaused) bomb.remove();
+    }, headLingerTime);
 
-  gameArea.appendChild(target);
+  } else {
+    const target = document.createElement('img');
+    const randomHead = headImages[Math.floor(Math.random() * headImages.length)];
+    const isGolden = Math.random() < 0.15;
 
-  setTimeout(() => {
-    if (target.parentNode && !target.classList.contains('shot') && !isPaused) {
-      target.remove();
-    }
-  }, headLingerTime);
+    target.src = randomHead;
+    target.classList.add('target-head');
+    if (isGolden) target.classList.add('golden');
+
+    target.style.width = `${targetSize}px`;
+    target.style.height = `${targetSize}px`;
+
+    const maxX = gameArea.clientWidth - targetSize - 20;
+    const maxY = gameArea.clientHeight - targetSize - 20;
+    target.style.left = `${Math.floor(Math.random() * maxX) + 10}px`;
+    target.style.top = `${Math.floor(Math.random() * maxY) + 10}px`;
+
+    target.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (target.classList.contains('shot') || isPaused) return;
+      hitTarget(target, e.clientX, e.clientY, isGolden);
+    });
+
+    gameArea.appendChild(target);
+
+    setTimeout(() => {
+      if (target.parentNode && !target.classList.contains('shot') && !isPaused) {
+        target.remove();
+      }
+    }, headLingerTime);
+  }
 }
 
 function hitTarget(target, clientX, clientY, isGolden) {
@@ -323,18 +386,40 @@ function hitTarget(target, clientX, clientY, isGolden) {
   updateUI();
 
   triggerGunshotFX(clientX, clientY);
-  showHitPopup(clientX, clientY, `+${hitPoints}`, isGolden);
+  showPopup(clientX, clientY, `+${hitPoints}`, isGolden ? 'gold' : '');
 
   setTimeout(() => {
     if (target.parentNode) target.remove();
   }, 350);
 }
 
-function showHitPopup(x, y, text, isGolden) {
+function hitBomb(bomb, clientX, clientY) {
+  bomb.remove();
+  playSound('bomb');
+
+  if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
+
+  points = 0; // WIPE OUT ALL POINTS!
+  updateUI();
+
+  // Screen Red Flash Warning
+  gameArea.classList.remove('danger-flash');
+  void gameArea.offsetWidth;
+  gameArea.classList.add('danger-flash');
+
+  const rect = gameArea.getBoundingClientRect();
+  const px = clientX - rect.left;
+  const py = clientY - rect.top;
+
+  spawnParticles(px, py, true);
+  showPopup(clientX, clientY, 'BOOM! 0 PTS!', 'penalty');
+}
+
+function showPopup(x, y, text, customClass) {
   const rect = gameArea.getBoundingClientRect();
   const popup = document.createElement('div');
   popup.classList.add('hit-popup');
-  if (isGolden) popup.classList.add('gold');
+  if (customClass) popup.classList.add(customClass);
   popup.innerText = text;
 
   popup.style.left = `${x - rect.left}px`;
@@ -345,8 +430,8 @@ function showHitPopup(x, y, text, isGolden) {
 }
 
 function autoShootTarget() {
-  if (!isGameActive || isPaused) return;
-  const activeTargets = document.querySelectorAll('.target-head:not(.shot)');
+  if (!isGameActive || isPaused || !gameArea) return;
+  const activeTargets = gameArea.querySelectorAll('.target-head:not(.shot)');
   if (activeTargets.length > 0) {
     const target = activeTargets[0];
     const rect = target.getBoundingClientRect();
@@ -354,9 +439,10 @@ function autoShootTarget() {
   }
 }
 
-function clearTargets() {
-  const targets = document.querySelectorAll('.target-head');
-  targets.forEach(t => t.remove());
+function clearEntities() {
+  if (!gameArea) return;
+  const entities = gameArea.querySelectorAll('.target-head, .target-bomb');
+  entities.forEach(e => e.remove());
 }
 
 function endGame() {
@@ -365,10 +451,10 @@ function endGame() {
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
   if (turretInterval) clearInterval(turretInterval);
-  clearTargets();
+  clearEntities();
 
-  finalScoreDisplay.innerText = points;
-  gameOverScreen.classList.remove('hidden');
+  if (finalScoreDisplay) finalScoreDisplay.innerText = points;
+  if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
 
 updateUI();
