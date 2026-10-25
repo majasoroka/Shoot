@@ -15,6 +15,12 @@ const flagImages = [
   'images/flag2.png'
 ];
 
+// Tracking shots for each target
+let hitCounts = {
+  head: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+  flag: [0, 0]
+};
+
 let audioCtx = null;
 
 function initAudio() {
@@ -26,7 +32,7 @@ function initAudio() {
   }
 }
 
-// Realistic gunshot audio generator using white-noise buffers and deep bass punch
+// Crisp, punchy gunshot sound generator
 function playGunshotSound(isBomb = false) {
   initAudio();
   if (!audioCtx) return;
@@ -48,8 +54,8 @@ function playGunshotSound(isBomb = false) {
     return;
   }
 
-  // Gunshot transient noise buffer
-  const bufferSize = audioCtx.sampleRate * 0.18;
+  // Dual-layer noise blast for realistic gunshot
+  const bufferSize = audioCtx.sampleRate * 0.25;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
@@ -61,19 +67,19 @@ function playGunshotSound(isBomb = false) {
 
   const filter = audioCtx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(1200, now);
-  filter.frequency.exponentialRampValueAtTime(100, now + 0.18);
+  filter.frequency.setValueAtTime(2500, now);
+  filter.frequency.exponentialRampValueAtTime(150, now + 0.2);
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.9, now);
-  gain.gain.exponentialRampValueAtTime(0.01, now + 0.18);
+  gain.gain.setValueAtTime(1.0, now);
+  gain.gain.exponentialRampValueAtTime(0.01, now + 0.22);
 
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(audioCtx.destination);
 
   noise.start(now);
-  noise.stop(now + 0.18);
+  noise.stop(now + 0.22);
 }
 
 // Game State Variables
@@ -145,6 +151,7 @@ if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 if (gameArea) {
   gameArea.addEventListener('pointerdown', (e) => {
     if (!isGameActive || isPaused) return;
+    initAudio();
     triggerGunshotFX(e.clientX, e.clientY);
     playGunshotSound(false);
     if (e.target === gameArea || e.target === muzzleFlash || e.target === weaponGun) {
@@ -221,7 +228,6 @@ if (buyTurretBtn) {
   });
 }
 
-// FIXED TARGET FRENZY BUTTON HOOK
 if (buyFrenzyBtn) {
   buyFrenzyBtn.addEventListener('click', () => {
     if (points >= costs.frenzy && isGameActive && !isPaused) {
@@ -240,6 +246,16 @@ function updateUI() {
   if (comboDisplay) comboDisplay.innerText = `${combo}x`;
   if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
+
+  // Update Tracker DOM Counts
+  for (let i = 0; i < 9; i++) {
+    const el = document.getElementById(`count-head${i}`);
+    if (el) el.innerText = hitCounts.head[i];
+  }
+  for (let i = 0; i < 2; i++) {
+    const el = document.getElementById(`count-flag${i}`);
+    if (el) el.innerText = hitCounts.flag[i];
+  }
 
   if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
   if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
@@ -304,7 +320,7 @@ function startTurret() {
 }
 
 function triggerGunshotFX(x, y) {
-  if (navigator.vibrate) navigator.vibrate(30);
+  if (navigator.vibrate) navigator.vibrate(35);
 
   if (gameArea) {
     gameArea.classList.remove('recoil');
@@ -334,7 +350,7 @@ function triggerGunshotFX(x, y) {
 }
 
 function spawnBloodSplatter(x, y, isBomb) {
-  for (let i = 0; i < (isBomb ? 14 : 8); i++) {
+  for (let i = 0; i < (isBomb ? 16 : 10); i++) {
     const p = document.createElement('div');
     p.classList.add('particle');
     if (isBomb) p.classList.add('bomb-part');
@@ -342,7 +358,7 @@ function spawnBloodSplatter(x, y, isBomb) {
     p.style.top = `${y}px`;
 
     const angle = Math.random() * Math.PI * 2;
-    const dist = (isBomb ? 45 : 30) + Math.random() * 45;
+    const dist = (isBomb ? 50 : 35) + Math.random() * 50;
     p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
     p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
 
@@ -382,10 +398,11 @@ function spawnEntity(forceBombCheck = true) {
     }, headLingerTime);
 
   } else if (isFlag) {
+    const flagIndex = Math.floor(Math.random() * flagImages.length);
     const flag = document.createElement('img');
-    const randomFlag = flagImages[Math.floor(Math.random() * flagImages.length)];
-    flag.src = randomFlag;
+    flag.src = flagImages[flagIndex];
     flag.classList.add('target-flag');
+    flag.dataset.flagIndex = flagIndex;
 
     flag.style.width = `${targetSize}px`;
     flag.style.height = `${targetSize}px`;
@@ -402,7 +419,7 @@ function spawnEntity(forceBombCheck = true) {
     flag.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       if (flag.classList.contains('shot') || isPaused) return;
-      hitFlag(flag, e.clientX, e.clientY);
+      hitFlag(flag, e.clientX, e.clientY, flagIndex);
     });
 
     gameArea.appendChild(flag);
@@ -414,12 +431,13 @@ function spawnEntity(forceBombCheck = true) {
     }, headLingerTime);
 
   } else {
+    const headIndex = Math.floor(Math.random() * headImages.length);
     const target = document.createElement('img');
-    const randomHead = headImages[Math.floor(Math.random() * headImages.length)];
-    const isGolden = Math.random() < 0.15;
-
-    target.src = randomHead;
+    target.src = headImages[headIndex];
     target.classList.add('target-head');
+    target.dataset.headIndex = headIndex;
+
+    const isGolden = Math.random() < 0.15;
     if (isGolden) target.classList.add('golden');
 
     target.style.width = `${targetSize}px`;
@@ -437,7 +455,7 @@ function spawnEntity(forceBombCheck = true) {
     target.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       if (target.classList.contains('shot') || isPaused) return;
-      hitTarget(target, e.clientX, e.clientY, isGolden);
+      hitTarget(target, e.clientX, e.clientY, isGolden, headIndex);
     });
 
     gameArea.appendChild(target);
@@ -467,10 +485,11 @@ function moveTargets() {
   });
 }
 
-function hitTarget(target, clientX, clientY, isGolden) {
+function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   target.classList.add('shot');
   combo++;
-  
+  hitCounts.head[headIndex]++; // Increment specific person hit counter
+
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
   let comboBonus = Math.floor(combo / 3);
@@ -496,9 +515,10 @@ function hitTarget(target, clientX, clientY, isGolden) {
   }, 350);
 }
 
-function hitFlag(flag, clientX, clientY) {
+function hitFlag(flag, clientX, clientY, flagIndex) {
   flag.classList.add('shot');
   combo++;
+  hitCounts.flag[flagIndex]++; // Increment specific flag hit counter
 
   let flagPoints = 50 * pointsMultiplier;
   points += flagPoints;
@@ -559,7 +579,8 @@ function autoShootTarget() {
   if (activeTargets.length > 0) {
     const target = activeTargets[0];
     const rect = target.getBoundingClientRect();
-    hitTarget(target, rect.left + rect.width / 2, rect.top + rect.height / 2, target.classList.contains('golden'));
+    const headIdx = parseInt(target.dataset.headIndex) || 0;
+    hitTarget(target, rect.left + rect.width / 2, rect.top + rect.height / 2, target.classList.contains('golden'), headIdx);
   }
 }
 
