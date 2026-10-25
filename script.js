@@ -6,7 +6,6 @@ const headImages = [
   'images/head5.png'
 ];
 
-// Audio Context Synthesizer (Lazy initialized on first tap for iOS Safari)
 let audioCtx = null;
 
 function initAudio() {
@@ -43,6 +42,14 @@ function playSound(type) {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
     osc.start(now);
     osc.stop(now + 0.1);
+  } else if (type === 'crit') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(900, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now);
+    osc.stop(now + 0.15);
   } else if (type === 'buy') {
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(440, now);
@@ -65,11 +72,14 @@ function playSound(type) {
 // Game State Variables
 let points = 0;
 let pointsMultiplier = 1;
+let combo = 0;
 let baseGameTime = 30;
 let remainingTime = 30;
-let targetSize = 80;
-let headLingerTime = 1900;
+let targetSize = 75;
+let headLingerTime = 1800;
 let autoTurretActive = false;
+let hasShield = false;
+let hasCrit = false;
 
 let isGameActive = false;
 let isPaused = false;
@@ -77,19 +87,21 @@ let isPaused = false;
 let gameTimer = null;
 let spawnInterval = null;
 let turretInterval = null;
+let moveInterval = null;
 
 // Upgrade Costs
 let costs = {
   multiplier: 50,
   time: 75,
-  size: 100,
+  shield: 90,
+  crit: 110,
   turret: 200,
-  slow: 150,
-  frenzy: 120
+  frenzy: 80
 };
 
 // DOM Elements
 const pointsDisplay = document.getElementById('points-display');
+const comboDisplay = document.getElementById('combo-display');
 const multiplierDisplay = document.getElementById('multiplier-display');
 const timeDisplay = document.getElementById('time-display');
 const gameArea = document.getElementById('game-area');
@@ -108,12 +120,12 @@ const finalScoreDisplay = document.getElementById('final-score');
 // Shop Buttons
 const buyMultiplierBtn = document.getElementById('buy-multiplier');
 const buyTimeBtn = document.getElementById('buy-time');
-const buySizeBtn = document.getElementById('buy-size');
+const buyShieldBtn = document.getElementById('buy-shield');
+const buyCritBtn = document.getElementById('buy-crit');
 const buyTurretBtn = document.getElementById('buy-turret');
-const buySlowBtn = document.getElementById('buy-slow');
 const buyFrenzyBtn = document.getElementById('buy-frenzy');
 
-// Event Listeners (Safely Bound)
+// Event Listeners
 if (startBtn) startBtn.addEventListener('click', startGame);
 if (mainStartBtn) mainStartBtn.addEventListener('click', startGame);
 if (restartBtn) restartBtn.addEventListener('click', startGame);
@@ -126,6 +138,11 @@ if (gameArea) {
     if (!isGameActive || isPaused) return;
     triggerGunshotFX(e.clientX, e.clientY);
     playSound('shoot');
+    // Miss penalty: reset combo if clicking empty background
+    if (e.target === gameArea || e.target === muzzleFlash) {
+      combo = 0;
+      updateUI();
+    }
   });
 }
 
@@ -157,13 +174,26 @@ if (buyTimeBtn) {
   });
 }
 
-if (buySizeBtn) {
-  buySizeBtn.addEventListener('click', () => {
-    if (points >= costs.size && targetSize < 140) {
-      points -= costs.size;
-      targetSize = Math.floor(targetSize * 1.25);
-      costs.size = Math.floor(costs.size * 2);
-      buySizeBtn.innerText = targetSize >= 140 ? 'MAXED' : `Buy (${costs.size} Pts)`;
+if (buyShieldBtn) {
+  buyShieldBtn.addEventListener('click', () => {
+    if (points >= costs.shield && !hasShield) {
+      points -= costs.shield;
+      hasShield = true;
+      buyShieldBtn.innerText = 'ACTIVE 🛡️';
+      buyShieldBtn.disabled = true;
+      playSound('buy');
+      updateUI();
+    }
+  });
+}
+
+if (buyCritBtn) {
+  buyCritBtn.addEventListener('click', () => {
+    if (points >= costs.crit && !hasCrit) {
+      points -= costs.crit;
+      hasCrit = true;
+      buyCritBtn.innerText = 'ACTIVE 💥';
+      buyCritBtn.disabled = true;
       playSound('buy');
       updateUI();
     }
@@ -183,27 +213,15 @@ if (buyTurretBtn) {
   });
 }
 
-if (buySlowBtn) {
-  buySlowBtn.addEventListener('click', () => {
-    if (points >= costs.slow) {
-      points -= costs.slow;
-      headLingerTime = 3500;
-      buySlowBtn.innerText = 'ACTIVE';
-      buySlowBtn.disabled = true;
-      playSound('buy');
-      updateUI();
-    }
-  });
-}
-
 if (buyFrenzyBtn) {
   buyFrenzyBtn.addEventListener('click', () => {
     if (points >= costs.frenzy && isGameActive && !isPaused) {
       points -= costs.frenzy;
-      for (let i = 0; i < 4; i++) {
-        spawnEntity();
-      }
       playSound('buy');
+      // FIXED: Instant frenzy burst of 5 targets
+      for (let i = 0; i < 5; i++) {
+        spawnEntity(false);
+      }
       updateUI();
     }
   });
@@ -211,14 +229,15 @@ if (buyFrenzyBtn) {
 
 function updateUI() {
   if (pointsDisplay) pointsDisplay.innerText = points;
+  if (comboDisplay) comboDisplay.innerText = `${combo}x`;
   if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
 
   if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
   if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
-  if (buySizeBtn) buySizeBtn.disabled = points < costs.size || targetSize >= 140;
+  if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
+  if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
   if (buyTurretBtn) buyTurretBtn.disabled = points < costs.turret || autoTurretActive;
-  if (buySlowBtn) buySlowBtn.disabled = points < costs.slow || headLingerTime > 2000;
   if (buyFrenzyBtn) buyFrenzyBtn.disabled = points < costs.frenzy || !isGameActive;
 }
 
@@ -228,6 +247,7 @@ function openShop() {
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
   if (turretInterval) clearInterval(turretInterval);
+  if (moveInterval) clearInterval(moveInterval);
   if (shopModal) shopModal.classList.remove('hidden');
   updateUI();
 }
@@ -247,7 +267,8 @@ function resumeTimers() {
     if (remainingTime <= 0) endGame();
   }, 1000);
 
-  spawnInterval = setInterval(spawnEntity, 800);
+  spawnInterval = setInterval(() => spawnEntity(), 750);
+  moveInterval = setInterval(moveTargets, 50); // Moving targets physics loop
   if (autoTurretActive) startTurret();
 }
 
@@ -256,6 +277,7 @@ function startGame() {
   isGameActive = true;
   isPaused = false;
   points = 0;
+  combo = 0;
   pointsMultiplier = 1;
   remainingTime = baseGameTime;
   updateUI();
@@ -270,7 +292,7 @@ function startGame() {
 
 function startTurret() {
   if (turretInterval) clearInterval(turretInterval);
-  turretInterval = setInterval(autoShootTarget, 1500);
+  turretInterval = setInterval(autoShootTarget, 1200);
 }
 
 function triggerGunshotFX(x, y) {
@@ -315,12 +337,11 @@ function spawnParticles(x, y, isBomb) {
   }
 }
 
-function spawnEntity() {
+function spawnEntity(forceBombCheck = true) {
   if (!isGameActive || isPaused || !gameArea) return;
-  if (gameArea.querySelectorAll('.target-head:not(.shot), .target-bomb').length >= 5) return;
+  if (gameArea.querySelectorAll('.target-head:not(.shot), .target-bomb').length >= 6) return;
 
-  // 20% chance to spawn a Bomb instead of a target head
-  const isBomb = Math.random() < 0.20;
+  const isBomb = forceBombCheck && Math.random() < 0.22;
 
   if (isBomb) {
     const bomb = document.createElement('div');
@@ -358,8 +379,14 @@ function spawnEntity() {
 
     const maxX = gameArea.clientWidth - targetSize - 20;
     const maxY = gameArea.clientHeight - targetSize - 20;
-    target.style.left = `${Math.floor(Math.random() * maxX) + 10}px`;
-    target.style.top = `${Math.floor(Math.random() * maxY) + 10}px`;
+    let posX = Math.floor(Math.random() * maxX) + 10;
+    let posY = Math.floor(Math.random() * maxY) + 10;
+
+    target.style.left = `${posX}px`;
+    target.style.top = `${posY}px`;
+
+    // Assign random drift velocity for moving target mechanics
+    target.dataset.vx = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.2);
 
     target.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -377,16 +404,50 @@ function spawnEntity() {
   }
 }
 
+// Move targets smoothly left & right across the arena
+function moveTargets() {
+  if (!isGameActive || isPaused || !gameArea) return;
+  const targets = gameArea.querySelectorAll('.target-head:not(.shot)');
+  const maxW = gameArea.clientWidth - targetSize;
+
+  targets.forEach(t => {
+    let currentLeft = parseFloat(t.style.left) || 0;
+    let vx = parseFloat(t.dataset.vx) || 1;
+
+    currentLeft += vx;
+    if (currentLeft <= 5 || currentLeft >= maxW - 5) {
+      t.dataset.vx = -vx; // Bounce off walls
+    }
+    t.style.left = `${currentLeft}px`;
+  });
+}
+
 function hitTarget(target, clientX, clientY, isGolden) {
   target.classList.add('shot');
-  playSound('hit');
+  combo++;
+  
+  let isCrit = hasCrit && Math.random() < 0.25;
+  let basePoints = isGolden ? 30 : 10;
+  let comboBonus = Math.floor(combo / 3); // Extra bonus every 3 combo streak
+  let hitPoints = (basePoints + comboBonus) * pointsMultiplier;
 
-  const hitPoints = (isGolden ? 30 : 10) * pointsMultiplier;
+  if (isCrit) {
+    hitPoints *= 3;
+    playSound('crit');
+  } else {
+    playSound('hit');
+  }
+
   points += hitPoints;
   updateUI();
 
   triggerGunshotFX(clientX, clientY);
-  showPopup(clientX, clientY, `+${hitPoints}`, isGolden ? 'gold' : '');
+  
+  if (isCrit) {
+    showPopup(clientX, clientY, `CRIT! +${hitPoints}`, 'crit');
+  } else {
+    showPopup(clientX, clientY, `+${hitPoints}`, isGolden ? 'gold' : '');
+  }
 
   setTimeout(() => {
     if (target.parentNode) target.remove();
@@ -395,23 +456,28 @@ function hitTarget(target, clientX, clientY, isGolden) {
 
 function hitBomb(bomb, clientX, clientY) {
   bomb.remove();
-  playSound('bomb');
+  combo = 0; // Reset combo streak
 
+  if (hasShield) {
+    hasShield = false;
+    playSound('buy');
+    updateUI();
+    showPopup(clientX, clientY, 'SHIELD BLOCKED!', 'shield');
+    return;
+  }
+
+  playSound('bomb');
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
-  points = 0; // WIPE OUT ALL POINTS!
+  points = 0; // Wipe out score penalty
   updateUI();
 
-  // Screen Red Flash Warning
   gameArea.classList.remove('danger-flash');
   void gameArea.offsetWidth;
   gameArea.classList.add('danger-flash');
 
   const rect = gameArea.getBoundingClientRect();
-  const px = clientX - rect.left;
-  const py = clientY - rect.top;
-
-  spawnParticles(px, py, true);
+  spawnParticles(clientX - rect.left, clientY - rect.top, true);
   showPopup(clientX, clientY, 'BOOM! 0 PTS!', 'penalty');
 }
 
@@ -451,6 +517,7 @@ function endGame() {
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
   if (turretInterval) clearInterval(turretInterval);
+  if (moveInterval) clearInterval(moveInterval);
   clearEntities();
 
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
