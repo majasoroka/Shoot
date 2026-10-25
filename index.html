@@ -16,8 +16,8 @@
         <span id="points-display" class="val">0</span>
       </div>
       <div class="stat-box">
-        <span class="label">MULT</span>
-        <span id="multiplier-display" class="val">1x</span>
+        <span class="label">COMBO</span>
+        <span id="combo-display" class="val">0x</span>
       </div>
       <div class="stat-box">
         <span class="label">TIME</span>
@@ -33,9 +33,9 @@
       
       <!-- Start Screen Overlay -->
       <div id="start-screen" class="overlay">
-        <h2>TACTICAL RANGE</h2>
-        <p>Tap head targets quickly & rack up points!</p>
-        <p class="sub-hint">⚠️ WARNING: Avoid the Bombs! Shooting a bomb resets your score to 0!</p>
+        <h2>TACTICAL RANGE EXTREME</h2>
+        <p>Targets now drift & move! Maintain your combo streak!</p>
+        <p class="sub-hint">⚠️ Avoid Bombs! (Shield upgrade protects your points).</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
@@ -48,7 +48,7 @@
           <div class="shop-card">
             <div class="card-info">
               <h3>Double Multiplier</h3>
-              <p>Doubles score multiplier per target hit.</p>
+              <p>Doubles score payout per hit.</p>
             </div>
             <button id="buy-multiplier" class="buy-btn">Buy (50 Pts)</button>
           </div>
@@ -56,41 +56,41 @@
           <div class="shop-card">
             <div class="card-info">
               <h3>Extra Time (+10s)</h3>
-              <p>Adds +10s to active timer & base round.</p>
+              <p>Adds +10s to active round timer.</p>
             </div>
             <button id="buy-time" class="buy-btn">Buy (75 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Bigger Heads (+25%)</h3>
-              <p>Makes target heads larger and easier to hit.</p>
+              <h3>Bomb Shield</h3>
+              <p>Blocks 1 accidental bomb explosion.</p>
             </div>
-            <button id="buy-size" class="buy-btn">Buy (100 Pts)</button>
+            <button id="buy-shield" class="buy-btn">Buy (90 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Critical Strike</h3>
+              <p>25% chance for 3x critical point hits.</p>
+            </div>
+            <button id="buy-crit" class="buy-btn">Buy (110 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
               <h3>Auto Sentry Turret</h3>
-              <p>Automatically shoots 1 head every 1.5s.</p>
+              <p>Automatically shoots 1 target every 1.2s.</p>
             </div>
             <button id="buy-turret" class="buy-btn">Buy (200 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Slow Motion Heads</h3>
-              <p>Heads stay on screen 2x longer before hiding.</p>
+              <h3>Target Frenzy (FIXED)</h3>
+              <p>Instantly spawns 5 targets right now.</p>
             </div>
-            <button id="buy-slow" class="buy-btn">Buy (150 Pts)</button>
-          </div>
-
-          <div class="shop-card">
-            <div class="card-info">
-              <h3>Target Frenzy</h3>
-              <p>Instantly spawns 4 extra target heads right now.</p>
-            </div>
-            <button id="buy-frenzy" class="buy-btn">Buy (120 Pts)</button>
+            <button id="buy-frenzy" class="buy-btn">Buy (80 Pts)</button>
           </div>
         </div>
 
@@ -104,6 +104,11 @@
         <button id="restart-btn" class="glow-btn large">PLAY AGAIN</button>
       </div>
     </main>
+
+    <!-- Footer Signature -->
+    <footer class="game-footer">
+      <span>🇺🇦 Зроблено Майєю</span>
+    </footer>
   </div>
 
   <script src="script.js"></script>
