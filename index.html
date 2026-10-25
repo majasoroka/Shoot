@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Target Shooting Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="game-container">
+    <!-- Header / HUD -->
+    <header class="hud">
+      <div class="stat">Points: <span id="points-display">0</span></div>
+      <div class="stat">Multiplier: <span id="multiplier-display">1x</span></div>
+      <div class="stat">Time: <span id="time-display">30</span>s</div>
+      <button id="start-btn">Start Game</button>
+    </header>
+
+    <!-- Main Playing Area -->
+    <main id="game-area">
+      <div id="crosshair"></div>
+      <div id="start-screen" class="overlay">
+        <h2>Target Practice</h2>
+        <p>Click targets before they disappear!</p>
+      </div>
+      <div id="game-over-screen" class="overlay hidden">
+        <h2>Time's Up!</h2>
+        <p>Final Score: <span id="final-score">0</span></p>
+        <button id="restart-btn">Play Again</button>
+      </div>
+    </main>
+
+    <!-- Upgrades Store -->
+    <section class="shop">
+      <h2>Upgrade Shop</h2>
+      <div class="shop-items">
+
+        <div class="shop-card">
+          <h3>Double Points</h3>
+          <p>Gain 2x points per target shot.</p>
+          <button id="buy-multiplier" class="buy-btn">Buy (50 Points)</button>
+        </div>
+
+        <div class="shop-card">
+          <h3>Extra Time</h3>
+          <p>Add +10 seconds to each round timer.</p>
+          <button id="buy-time" class="buy-btn">Buy (75 Points)</button>
+        </div>
+
+        <div class="shop-card">
+          <h3>Larger Targets</h3>
+          <p>Makes heads 25% bigger and easier to click.</p>
+          <button id="buy-size" class="buy-btn">Buy (100 Points)</button>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
