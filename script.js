@@ -1,13 +1,13 @@
 const headImages = [
-  'images/head1.png', // 0: Putin (Russia)
+  'images/head1.png', // 0: Putin
   'images/head2.png', // 1: Trump
   'images/head3.png', // 2: Eduardo Bolsonaro
   'images/head4.png', // 3: Flávio Bolsonaro
   'images/head5.png', // 4: Jair Bolsonaro
-  'images/head6.png', // 5: Ben Gvir (Israel)
+  'images/head6.png', // 5: Ben Gvir
   'images/head7.png', // 6: Rupert Lowe
   'images/head8.png', // 7: Nigel Farage
-  'images/head9.png'  // 8: Netanyahu (Israel)
+  'images/head9.png'  // 8: Netanyahu
 ];
 
 const flagImages = [
@@ -21,18 +21,16 @@ const bombSound = new Audio('audio/bomb.mp3');
 const israelSound = new Audio('audio/israel.mp3');
 const russiaSound = new Audio('audio/russia.mp3');
 
-// Array of all sounds to easily stop them all at once
+// Array of all sounds to cut them off cleanly
 const allSounds = [gunshotSound, bombSound, israelSound, russiaSound];
 
 // Helper to stop all playing audio and play the new one cleanly
 function playCustomAudio(audioObj) {
-  // Stop all other audio tracks immediately
   allSounds.forEach(sound => {
     sound.pause();
     sound.currentTime = 0;
   });
 
-  // Play the requested sound
   audioObj.currentTime = 0;
   audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
 }
@@ -436,14 +434,8 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   combo++;
   hitCounts.head[headIndex]++;
 
-  // Play respective audio and immediately cut off any previous audio
-  if (headIndex === 0) {
-    playCustomAudio(russiaSound); // Putin
-  } else if (headIndex === 5 || headIndex === 8) {
-    playCustomAudio(israelSound); // Ben Gvir or Netanyahu
-  } else {
-    playCustomAudio(gunshotSound);
-  }
+  // ALL PEOPLE NOW PLAY THE STANDARD GUNSHOT SOUND
+  playCustomAudio(gunshotSound);
 
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
@@ -475,6 +467,7 @@ function hitFlag(flag, clientX, clientY, flagIndex) {
   combo++;
   hitCounts.flag[flagIndex]++;
 
+  // ONLY FLAGS PLAY THE COUNTRY AUDIO TRACKS
   if (flagIndex === 0) {
     playCustomAudio(israelSound); // Israel Flag
   } else if (flagIndex === 1) {
