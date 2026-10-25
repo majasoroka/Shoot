@@ -1,0 +1,169 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #121212;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.game-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* HUD Header */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e1e1e;
+  padding: 15px 25px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.hud span {
+  color: #00ffcc;
+}
+
+#start-btn, #restart-btn {
+  background-color: #00ffcc;
+  color: #121212;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+#start-btn:hover, #restart-btn:hover {
+  background-color: #00cca3;
+  transform: scale(1.05);
+}
+
+/* Game Playing Area */
+#game-area {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  background-color: #181824;
+  border: 2px solid #333;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+/* Target Heads */
+.target-head {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  cursor: crosshair;
+  transition: transform 0.1s;
+  animation: popIn 0.2s ease-out;
+}
+
+.target-head:active {
+  transform: scale(0.85);
+}
+
+@keyframes popIn {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+/* Overlays */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  z-index: 10;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Shop Section */
+.shop {
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #333;
+}
+
+.shop h2 {
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  color: #ff0055;
+}
+
+.shop-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 15px;
+}
+
+.shop-card {
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #444;
+}
+
+.shop-card h3 {
+  font-size: 1.1rem;
+}
+
+.shop-card p {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.buy-btn {
+  background-color: #ff0055;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: opacity 0.2s;
+}
+
+.buy-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.buy-btn:not(:disabled):hover {
+  background-color: #d00045;
+}
