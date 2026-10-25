@@ -1,4 +1,3 @@
-// Expanded list of all 9 target heads
 const headImages = [
   'images/head1.png',
   'images/head2.png',
@@ -11,7 +10,6 @@ const headImages = [
   'images/head9.png'
 ];
 
-// Flag bonus targets
 const flagImages = [
   'images/flag1.png',
   'images/flag2.png'
@@ -28,64 +26,54 @@ function initAudio() {
   }
 }
 
-function playSound(type) {
+// Realistic gunshot audio generator using white-noise buffers and deep bass punch
+function playGunshotSound(isBomb = false) {
   initAudio();
   if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
+
   const now = audioCtx.currentTime;
 
-  if (type === 'shoot') {
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(300, now);
-    osc.frequency.exponentialRampToValueAtTime(10, now + 0.12);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-    osc.start(now);
-    osc.stop(now + 0.12);
-  } else if (type === 'hit') {
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, now);
-    osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-    osc.start(now);
-    osc.stop(now + 0.1);
-  } else if (type === 'flag') {
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(500, now);
-    osc.frequency.setValueAtTime(1000, now + 0.1);
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-    osc.start(now);
-    osc.stop(now + 0.2);
-  } else if (type === 'crit') {
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(900, now);
-    osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-    osc.start(now);
-    osc.stop(now + 0.15);
-  } else if (type === 'buy') {
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(440, now);
-    osc.frequency.setValueAtTime(880, now + 0.08);
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-    osc.start(now);
-    osc.stop(now + 0.2);
-  } else if (type === 'bomb') {
+  if (isBomb) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
     osc.type = 'square';
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
-    gain.gain.setValueAtTime(0.7, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampValueAtTime(20, now + 0.5);
+    gain.gain.setValueAtTime(0.8, now);
+    gain.gain.exponentialRampValueAtTime(0.01, now + 0.5);
     osc.start(now);
-    osc.stop(now + 0.4);
+    osc.stop(now + 0.5);
+    return;
   }
+
+  // Gunshot transient noise buffer
+  const bufferSize = audioCtx.sampleRate * 0.18;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(1200, now);
+  filter.frequency.exponentialRampValueAtTime(100, now + 0.18);
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.9, now);
+  gain.gain.exponentialRampValueAtTime(0.01, now + 0.18);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  noise.start(now);
+  noise.stop(now + 0.18);
 }
 
 // Game State Variables
@@ -125,6 +113,8 @@ const multiplierDisplay = document.getElementById('multiplier-display');
 const timeDisplay = document.getElementById('time-display');
 const gameArea = document.getElementById('game-area');
 const muzzleFlash = document.getElementById('muzzle-flash');
+const weaponGun = document.getElementById('weapon-gun');
+
 const startBtn = document.getElementById('start-btn');
 const mainStartBtn = document.getElementById('main-start-btn');
 const restartBtn = document.getElementById('restart-btn');
@@ -156,8 +146,8 @@ if (gameArea) {
   gameArea.addEventListener('pointerdown', (e) => {
     if (!isGameActive || isPaused) return;
     triggerGunshotFX(e.clientX, e.clientY);
-    playSound('shoot');
-    if (e.target === gameArea || e.target === muzzleFlash) {
+    playGunshotSound(false);
+    if (e.target === gameArea || e.target === muzzleFlash || e.target === weaponGun) {
       combo = 0;
       updateUI();
     }
@@ -172,7 +162,7 @@ if (buyMultiplierBtn) {
       pointsMultiplier *= 2;
       costs.multiplier = Math.floor(costs.multiplier * 2.5);
       buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-      playSound('buy');
+      playGunshotSound(false);
       updateUI();
     }
   });
@@ -186,7 +176,7 @@ if (buyTimeBtn) {
       baseGameTime += 10;
       costs.time = Math.floor(costs.time * 2);
       buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
-      playSound('buy');
+      playGunshotSound(false);
       updateUI();
     }
   });
@@ -199,7 +189,7 @@ if (buyShieldBtn) {
       hasShield = true;
       buyShieldBtn.innerText = 'ACTIVE 🛡️';
       buyShieldBtn.disabled = true;
-      playSound('buy');
+      playGunshotSound(false);
       updateUI();
     }
   });
@@ -212,7 +202,7 @@ if (buyCritBtn) {
       hasCrit = true;
       buyCritBtn.innerText = 'ACTIVE 💥';
       buyCritBtn.disabled = true;
-      playSound('buy');
+      playGunshotSound(false);
       updateUI();
     }
   });
@@ -224,18 +214,19 @@ if (buyTurretBtn) {
       points -= costs.turret;
       autoTurretActive = true;
       buyTurretBtn.innerText = 'OWNED';
-      playSound('buy');
+      playGunshotSound(false);
       if (isGameActive && !isPaused) startTurret();
       updateUI();
     }
   });
 }
 
+// FIXED TARGET FRENZY BUTTON HOOK
 if (buyFrenzyBtn) {
   buyFrenzyBtn.addEventListener('click', () => {
     if (points >= costs.frenzy && isGameActive && !isPaused) {
       points -= costs.frenzy;
-      playSound('buy');
+      playGunshotSound(false);
       for (let i = 0; i < 5; i++) {
         spawnEntity(false);
       }
@@ -301,7 +292,6 @@ function startGame() {
 
   if (startScreen) startScreen.classList.add('hidden');
   if (shopModal) shopModal.classList.add('hidden');
-  if (gameOverScreen) shopModal.classList.add('hidden');
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
 
   clearEntities();
@@ -314,12 +304,18 @@ function startTurret() {
 }
 
 function triggerGunshotFX(x, y) {
-  if (navigator.vibrate) navigator.vibrate(25);
+  if (navigator.vibrate) navigator.vibrate(30);
 
   if (gameArea) {
     gameArea.classList.remove('recoil');
     void gameArea.offsetWidth;
     gameArea.classList.add('recoil');
+
+    if (weaponGun) {
+      weaponGun.classList.remove('fire');
+      void weaponGun.offsetWidth;
+      weaponGun.classList.add('fire');
+    }
 
     const rect = gameArea.getBoundingClientRect();
     const flashX = x - rect.left;
@@ -333,12 +329,12 @@ function triggerGunshotFX(x, y) {
       muzzleFlash.classList.add('active');
     }
 
-    spawnParticles(flashX, flashY, false);
+    spawnBloodSplatter(flashX, flashY, false);
   }
 }
 
-function spawnParticles(x, y, isBomb) {
-  for (let i = 0; i < (isBomb ? 12 : 6); i++) {
+function spawnBloodSplatter(x, y, isBomb) {
+  for (let i = 0; i < (isBomb ? 14 : 8); i++) {
     const p = document.createElement('div');
     p.classList.add('particle');
     if (isBomb) p.classList.add('bomb-part');
@@ -346,12 +342,12 @@ function spawnParticles(x, y, isBomb) {
     p.style.top = `${y}px`;
 
     const angle = Math.random() * Math.PI * 2;
-    const dist = (isBomb ? 40 : 25) + Math.random() * 40;
+    const dist = (isBomb ? 45 : 30) + Math.random() * 45;
     p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
     p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
 
     gameArea.appendChild(p);
-    setTimeout(() => p.remove(), 400);
+    setTimeout(() => p.remove(), 450);
   }
 }
 
@@ -361,7 +357,7 @@ function spawnEntity(forceBombCheck = true) {
 
   const randRoll = Math.random();
   const isBomb = forceBombCheck && randRoll < 0.20;
-  const isFlag = !isBomb && randRoll < 0.35; // 15% chance for a Flag bonus
+  const isFlag = !isBomb && randRoll < 0.35;
 
   if (isBomb) {
     const bomb = document.createElement('div');
@@ -482,9 +478,6 @@ function hitTarget(target, clientX, clientY, isGolden) {
 
   if (isCrit) {
     hitPoints *= 3;
-    playSound('crit');
-  } else {
-    playSound('hit');
   }
 
   points += hitPoints;
@@ -506,11 +499,10 @@ function hitTarget(target, clientX, clientY, isGolden) {
 function hitFlag(flag, clientX, clientY) {
   flag.classList.add('shot');
   combo++;
-  playSound('flag');
 
   let flagPoints = 50 * pointsMultiplier;
   points += flagPoints;
-  pointsMultiplier += 1; // Temporary multiplier boost for hitting a flag!
+  pointsMultiplier += 1;
   updateUI();
 
   triggerGunshotFX(clientX, clientY);
@@ -527,13 +519,12 @@ function hitBomb(bomb, clientX, clientY) {
 
   if (hasShield) {
     hasShield = false;
-    playSound('buy');
     updateUI();
     showPopup(clientX, clientY, 'SHIELD BLOCKED!', 'shield');
     return;
   }
 
-  playSound('bomb');
+  playGunshotSound(true);
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
   points = 0;
@@ -544,7 +535,7 @@ function hitBomb(bomb, clientX, clientY) {
   gameArea.classList.add('danger-flash');
 
   const rect = gameArea.getBoundingClientRect();
-  spawnParticles(clientX - rect.left, clientY - rect.top, true);
+  spawnBloodSplatter(clientX - rect.left, clientY - rect.top, true);
   showPopup(clientX, clientY, 'BOOM! 0 PTS!', 'penalty');
 }
 
