@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Target Shooting Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tactical Headshot Arcade</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,47 +11,73 @@
   <div class="game-container">
     <!-- Header / HUD -->
     <header class="hud">
-      <div class="stat">Points: <span id="points-display">0</span></div>
-      <div class="stat">Multiplier: <span id="multiplier-display">1x</span></div>
-      <div class="stat">Time: <span id="time-display">30</span>s</div>
-      <button id="start-btn">Start Game</button>
+      <div class="stat-box">
+        <span class="label">SCORE</span>
+        <span id="points-display" class="val">0</span>
+      </div>
+      <div class="stat-box">
+        <span class="label">MULTIPLIER</span>
+        <span id="multiplier-display" class="val">1x</span>
+      </div>
+      <div class="stat-box">
+        <span class="label">TIME LEFT</span>
+        <span id="time-display" class="val">30s</span>
+      </div>
+      <button id="start-btn" class="glow-btn">START</button>
     </header>
 
     <!-- Main Playing Area -->
     <main id="game-area">
-      <div id="crosshair"></div>
+      <div id="muzzle-flash" class="flash-effect"></div>
+      
       <div id="start-screen" class="overlay">
-        <h2>Target Practice</h2>
-        <p>Click targets before they disappear!</p>
+        <h2>TACTICAL RANGE</h2>
+        <p>Tap heads quickly to gain points & score high!</p>
+        <p class="sub-hint">Watch out for golden heads for 3x points!</p>
       </div>
+
       <div id="game-over-screen" class="overlay hidden">
-        <h2>Time's Up!</h2>
-        <p>Final Score: <span id="final-score">0</span></p>
-        <button id="restart-btn">Play Again</button>
+        <h2>ROUND COMPLETE</h2>
+        <p class="final-score-text">TOTAL SCORE: <span id="final-score">0</span></p>
+        <button id="restart-btn" class="glow-btn">PLAY AGAIN</button>
       </div>
     </main>
 
     <!-- Upgrades Store -->
     <section class="shop">
-      <h2>Upgrade Shop</h2>
+      <h2>ARMORY & UPGRADES</h2>
       <div class="shop-items">
 
         <div class="shop-card">
-          <h3>Double Points</h3>
-          <p>Gain 2x points per target shot.</p>
-          <button id="buy-multiplier" class="buy-btn">Buy (50 Points)</button>
+          <div class="card-info">
+            <h3>Double Multiplier</h3>
+            <p>Doubles score payout per target hit.</p>
+          </div>
+          <button id="buy-multiplier" class="buy-btn">Buy (50 Pts)</button>
         </div>
 
         <div class="shop-card">
-          <h3>Extra Time</h3>
-          <p>Add +10 seconds to each round timer.</p>
-          <button id="buy-time" class="buy-btn">Buy (75 Points)</button>
+          <div class="card-info">
+            <h3>Extra Time (+10s)</h3>
+            <p>Extends round duration permanently.</p>
+          </div>
+          <button id="buy-time" class="buy-btn">Buy (75 Pts)</button>
         </div>
 
         <div class="shop-card">
-          <h3>Larger Targets</h3>
-          <p>Makes heads 25% bigger and easier to click.</p>
-          <button id="buy-size" class="buy-btn">Buy (100 Points)</button>
+          <div class="card-info">
+            <h3>Bigger Target Heads</h3>
+            <p>Makes target heads 25% larger.</p>
+          </div>
+          <button id="buy-size" class="buy-btn">Buy (100 Pts)</button>
+        </div>
+
+        <div class="shop-card">
+          <div class="card-info">
+            <h3>Auto-Turret Sentry</h3>
+            <p>Automatically shoots 1 target every 2 seconds.</p>
+          </div>
+          <button id="buy-turret" class="buy-btn">Buy (200 Pts)</button>
         </div>
 
       </div>
