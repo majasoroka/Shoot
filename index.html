@@ -23,6 +23,7 @@
         <span class="label">TIME LEFT</span>
         <span id="time-display" class="val">30s</span>
       </div>
+      <button id="shop-toggle-btn" class="glow-btn alt">ARMORY</button>
       <button id="start-btn" class="glow-btn">START</button>
     </header>
 
@@ -30,58 +31,82 @@
     <main id="game-area">
       <div id="muzzle-flash" class="flash-effect"></div>
       
+      <!-- Start Screen -->
       <div id="start-screen" class="overlay">
         <h2>TACTICAL RANGE</h2>
-        <p>Tap heads quickly to gain points & score high!</p>
-        <p class="sub-hint">Watch out for golden heads for 3x points!</p>
+        <p>Tap heads quickly to score points & buy upgrades!</p>
+        <p class="sub-hint">⭐ Golden heads award 3x combo points!</p>
+        <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
+      <!-- Pause / Shop Modal -->
+      <div id="shop-modal" class="overlay hidden">
+        <h2>ARMORY & UPGRADES</h2>
+        <p class="pause-notice">⏸️ GAME PAUSED</p>
+        
+        <div class="shop-grid">
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Double Multiplier</h3>
+              <p>Doubles score multiplier per target hit.</p>
+            </div>
+            <button id="buy-multiplier" class="buy-btn">Buy (50 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Extra Time (+10s)</h3>
+              <p>Adds +10s to active timer & base round.</p>
+            </div>
+            <button id="buy-time" class="buy-btn">Buy (75 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Bigger Heads (+25%)</h3>
+              <p>Makes head targets larger & easier to hit.</p>
+            </div>
+            <button id="buy-size" class="buy-btn">Buy (100 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Auto Sentry Turret</h3>
+              <p>Automatically shoots 1 head every 1.5s.</p>
+            </div>
+            <button id="buy-turret" class="buy-btn">Buy (200 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Slow Motion Heads</h3>
+              <p>Heads stay on screen 2x longer before hiding.</p>
+            </div>
+            <button id="buy-slow" class="buy-btn">Buy (150 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3>Target Frenzy</h3>
+              <p>Instantly spawns 4 extra target heads right now.</p>
+            </div>
+            <button id="buy-frenzy" class="buy-btn">Buy (120 Pts)</button>
+          </div>
+
+        </div>
+
+        <button id="close-shop-btn" class="glow-btn">RESUME GAME</button>
+      </div>
+
+      <!-- Game Over Screen -->
       <div id="game-over-screen" class="overlay hidden">
         <h2>ROUND COMPLETE</h2>
-        <p class="final-score-text">TOTAL SCORE: <span id="final-score">0</span></p>
-        <button id="restart-btn" class="glow-btn">PLAY AGAIN</button>
+        <p class="final-score-text">FINAL SCORE: <span id="final-score">0</span></p>
+        <button id="restart-btn" class="glow-btn large">PLAY AGAIN</button>
       </div>
     </main>
 
-    <!-- Upgrades Store -->
-    <section class="shop">
-      <h2>ARMORY & UPGRADES</h2>
-      <div class="shop-items">
-
-        <div class="shop-card">
-          <div class="card-info">
-            <h3>Double Multiplier</h3>
-            <p>Doubles score payout per target hit.</p>
-          </div>
-          <button id="buy-multiplier" class="buy-btn">Buy (50 Pts)</button>
-        </div>
-
-        <div class="shop-card">
-          <div class="card-info">
-            <h3>Extra Time (+10s)</h3>
-            <p>Extends round duration permanently.</p>
-          </div>
-          <button id="buy-time" class="buy-btn">Buy (75 Pts)</button>
-        </div>
-
-        <div class="shop-card">
-          <div class="card-info">
-            <h3>Bigger Target Heads</h3>
-            <p>Makes target heads 25% larger.</p>
-          </div>
-          <button id="buy-size" class="buy-btn">Buy (100 Pts)</button>
-        </div>
-
-        <div class="shop-card">
-          <div class="card-info">
-            <h3>Auto-Turret Sentry</h3>
-            <p>Automatically shoots 1 target every 2 seconds.</p>
-          </div>
-          <button id="buy-turret" class="buy-btn">Buy (200 Pts)</button>
-        </div>
-
-      </div>
-    </section>
   </div>
 
   <script src="script.js"></script>
