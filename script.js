@@ -1,86 +1,47 @@
 const headImages = [
-  'images/head1.png',
-  'images/head2.png',
-  'images/head3.png',
-  'images/head4.png',
-  'images/head5.png',
-  'images/head6.png',
-  'images/head7.png',
-  'images/head8.png',
-  'images/head9.png'
+  'images/head1.png', // 0: Putin (Russia)
+  'images/head2.png', // 1: Trump
+  'images/head3.png', // 2: Eduardo Bolsonaro
+  'images/head4.png', // 3: Flávio Bolsonaro
+  'images/head5.png', // 4: Jair Bolsonaro
+  'images/head6.png', // 5: Ben Gvir (Israel)
+  'images/head7.png', // 6: Rupert Lowe
+  'images/head8.png', // 7: Nigel Farage
+  'images/head9.png'  // 8: Netanyahu (Israel)
 ];
 
 const flagImages = [
-  'images/flag1.png',
-  'images/flag2.png'
+  'images/flag1.png', // 0: Israel Flag
+  'images/flag2.png'  // 1: Russia Flag
 ];
+
+// Load Custom Audio Files
+const gunshotSound = new Audio('audio/gunshot.mp3');
+const bombSound = new Audio('audio/bomb.mp3');
+const israelSound = new Audio('audio/israel.mp3');
+const russiaSound = new Audio('audio/russia.mp3');
+
+// Array of all sounds to easily stop them all at once
+const allSounds = [gunshotSound, bombSound, israelSound, russiaSound];
+
+// Helper to stop all playing audio and play the new one cleanly
+function playCustomAudio(audioObj) {
+  // Stop all other audio tracks immediately
+  allSounds.forEach(sound => {
+    sound.pause();
+    sound.currentTime = 0;
+  });
+
+  // Play the requested sound
+  audioObj.currentTime = 0;
+  audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
+}
 
 // Tracking shots for each target
 let hitCounts = {
   head: [0, 0, 0, 0, 0, 0, 0, 0, 0],
   flag: [0, 0]
 };
-
-let audioCtx = null;
-
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-}
-
-// Crisp, explosive gunshot sound generator guaranteed to fire on touch
-function playGunshotSound(isBomb = false) {
-  initAudio();
-  if (!audioCtx) return;
-
-  const now = audioCtx.currentTime;
-
-  if (isBomb) {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(140, now);
-    osc.frequency.exponentialRampValueAtTime(20, now + 0.6);
-    gain.gain.setValueAtTime(1.0, now);
-    gain.gain.exponentialRampValueAtTime(0.01, now + 0.6);
-    osc.start(now);
-    osc.stop(now + 0.6);
-    return;
-  }
-
-  // Heavy blast buffer noise
-  const bufferSize = audioCtx.sampleRate * 0.3;
-  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1);
-  }
-
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = buffer;
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(3000, now);
-  filter.frequency.exponentialRampValueAtTime(100, now + 0.25);
-
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(1.5, now);
-  gain.gain.exponentialRampValueAtTime(0.01, now + 0.28);
-
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  noise.start(now);
-  noise.stop(now + 0.28);
-}
 
 // Game State Variables
 let points = 0;
@@ -149,9 +110,8 @@ if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 if (gameArea) {
   gameArea.addEventListener('pointerdown', (e) => {
     if (!isGameActive || isPaused) return;
-    initAudio();
     triggerGunshotFX(e.clientX, e.clientY);
-    playGunshotSound(false);
+    playCustomAudio(gunshotSound);
     if (e.target === gameArea || e.target === muzzleFlash || e.target === weaponGun) {
       combo = 0;
       updateUI();
@@ -159,7 +119,7 @@ if (gameArea) {
   });
 }
 
-// Shop Upgrades (Updates HUD instantly while paused!)
+// Shop Upgrades
 if (buyMultiplierBtn) {
   buyMultiplierBtn.addEventListener('click', () => {
     if (points >= costs.multiplier) {
@@ -167,7 +127,7 @@ if (buyMultiplierBtn) {
       pointsMultiplier *= 2;
       costs.multiplier = Math.floor(costs.multiplier * 2.5);
       buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-      playGunshotSound(false);
+      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
@@ -181,8 +141,8 @@ if (buyTimeBtn) {
       baseGameTime += 10;
       costs.time = Math.floor(costs.time * 2);
       buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
-      playGunshotSound(false);
-      updateUI(); // Updates time immediately on HUD
+      playCustomAudio(gunshotSound);
+      updateUI();
     }
   });
 }
@@ -194,7 +154,7 @@ if (buyShieldBtn) {
       hasShield = true;
       buyShieldBtn.innerText = 'ACTIVE 🛡️';
       buyShieldBtn.disabled = true;
-      playGunshotSound(false);
+      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
@@ -207,7 +167,7 @@ if (buyCritBtn) {
       hasCrit = true;
       buyCritBtn.innerText = 'ACTIVE 💥';
       buyCritBtn.disabled = true;
-      playGunshotSound(false);
+      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
@@ -219,7 +179,7 @@ if (buyTurretBtn) {
       points -= costs.turret;
       autoTurretActive = true;
       buyTurretBtn.innerText = 'OWNED';
-      playGunshotSound(false);
+      playCustomAudio(gunshotSound);
       if (isGameActive && !isPaused) startTurret();
       updateUI();
     }
@@ -232,7 +192,6 @@ function updateUI() {
   if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
 
-  // Live update Tracker DOM counts instantly
   for (let i = 0; i < 9; i++) {
     const el = document.getElementById(`count-head${i}`);
     if (el) el.innerText = hitCounts.head[i];
@@ -281,7 +240,6 @@ function resumeTimers() {
 }
 
 function startGame() {
-  initAudio();
   isGameActive = true;
   isPaused = false;
   points = 0;
@@ -478,6 +436,15 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   combo++;
   hitCounts.head[headIndex]++;
 
+  // Play respective audio and immediately cut off any previous audio
+  if (headIndex === 0) {
+    playCustomAudio(russiaSound); // Putin
+  } else if (headIndex === 5 || headIndex === 8) {
+    playCustomAudio(israelSound); // Ben Gvir or Netanyahu
+  } else {
+    playCustomAudio(gunshotSound);
+  }
+
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
   let comboBonus = Math.floor(combo / 3);
@@ -508,6 +475,12 @@ function hitFlag(flag, clientX, clientY, flagIndex) {
   combo++;
   hitCounts.flag[flagIndex]++;
 
+  if (flagIndex === 0) {
+    playCustomAudio(israelSound); // Israel Flag
+  } else if (flagIndex === 1) {
+    playCustomAudio(russiaSound); // Russia Flag
+  }
+
   let flagPoints = 50 * pointsMultiplier;
   points += flagPoints;
   pointsMultiplier += 1;
@@ -532,10 +505,9 @@ function hitBomb(bomb, clientX, clientY) {
     return;
   }
 
-  playGunshotSound(true);
+  playCustomAudio(bombSound);
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
-  // RESET SCORE AND TRACKER TO ZERO ON BOMB HIT!
   points = 0;
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
