@@ -32,7 +32,7 @@ function initAudio() {
   }
 }
 
-// Crisp, explosive gunshot sound generator guaranteed to fire on mobile touch
+// Crisp, explosive gunshot sound generator guaranteed to fire on touch
 function playGunshotSound(isBomb = false) {
   initAudio();
   if (!audioCtx) return;
@@ -71,7 +71,7 @@ function playGunshotSound(isBomb = false) {
   filter.frequency.exponentialRampValueAtTime(100, now + 0.25);
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(1.2, now);
+  gain.gain.setValueAtTime(1.5, now);
   gain.gain.exponentialRampValueAtTime(0.01, now + 0.28);
 
   noise.connect(filter);
@@ -108,8 +108,7 @@ let costs = {
   time: 75,
   shield: 90,
   crit: 110,
-  turret: 200,
-  frenzy: 80
+  turret: 200
 };
 
 // DOM Elements
@@ -138,7 +137,6 @@ const buyTimeBtn = document.getElementById('buy-time');
 const buyShieldBtn = document.getElementById('buy-shield');
 const buyCritBtn = document.getElementById('buy-crit');
 const buyTurretBtn = document.getElementById('buy-turret');
-const buyFrenzyBtn = document.getElementById('buy-frenzy');
 
 // Event Listeners
 if (startBtn) startBtn.addEventListener('click', startGame);
@@ -161,7 +159,7 @@ if (gameArea) {
   });
 }
 
-// Shop Upgrades
+// Shop Upgrades (Updates HUD instantly while paused!)
 if (buyMultiplierBtn) {
   buyMultiplierBtn.addEventListener('click', () => {
     if (points >= costs.multiplier) {
@@ -184,7 +182,7 @@ if (buyTimeBtn) {
       costs.time = Math.floor(costs.time * 2);
       buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
       playGunshotSound(false);
-      updateUI();
+      updateUI(); // Updates time immediately on HUD
     }
   });
 }
@@ -228,19 +226,6 @@ if (buyTurretBtn) {
   });
 }
 
-if (buyFrenzyBtn) {
-  buyFrenzyBtn.addEventListener('click', () => {
-    if (points >= costs.frenzy && isGameActive && !isPaused) {
-      points -= costs.frenzy;
-      playGunshotSound(false);
-      for (let i = 0; i < 5; i++) {
-        spawnEntity(false);
-      }
-      updateUI();
-    }
-  });
-}
-
 function updateUI() {
   if (pointsDisplay) pointsDisplay.innerText = points;
   if (comboDisplay) comboDisplay.innerText = `${combo}x`;
@@ -262,7 +247,6 @@ function updateUI() {
   if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
   if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
   if (buyTurretBtn) buyTurretBtn.disabled = points < costs.turret || autoTurretActive;
-  if (buyFrenzyBtn) buyFrenzyBtn.disabled = points < costs.frenzy || !isGameActive;
 }
 
 function openShop() {
@@ -305,7 +289,6 @@ function startGame() {
   pointsMultiplier = 1;
   remainingTime = baseGameTime;
   
-  // Reset hit counts on fresh deployment
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
 
@@ -493,7 +476,7 @@ function moveTargets() {
 function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   target.classList.add('shot');
   combo++;
-  hitCounts.head[headIndex]++; // Increment hit tracker instantly
+  hitCounts.head[headIndex]++;
 
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
@@ -523,7 +506,7 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
 function hitFlag(flag, clientX, clientY, flagIndex) {
   flag.classList.add('shot');
   combo++;
-  hitCounts.flag[flagIndex]++; // Increment flag hit tracker instantly
+  hitCounts.flag[flagIndex]++;
 
   let flagPoints = 50 * pointsMultiplier;
   points += flagPoints;
@@ -552,7 +535,7 @@ function hitBomb(bomb, clientX, clientY) {
   playGunshotSound(true);
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
-  // RESET SCORE AND KILL LIST TRACKER TO ZERO ON BOMB HIT!
+  // RESET SCORE AND TRACKER TO ZERO ON BOMB HIT!
   points = 0;
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
