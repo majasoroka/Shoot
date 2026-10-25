@@ -16,11 +16,11 @@
         <span id="points-display" class="val">0</span>
       </div>
       <div class="stat-box">
-        <span class="label">MULTIPLIER</span>
+        <span class="label">MULT</span>
         <span id="multiplier-display" class="val">1x</span>
       </div>
       <div class="stat-box">
-        <span class="label">TIME LEFT</span>
+        <span class="label">TIME</span>
         <span id="time-display" class="val">30s</span>
       </div>
       <button id="shop-toggle-btn" class="glow-btn alt">ARMORY</button>
@@ -31,21 +31,20 @@
     <main id="game-area">
       <div id="muzzle-flash" class="flash-effect"></div>
       
-      <!-- Start Screen -->
+      <!-- Start Screen Overlay -->
       <div id="start-screen" class="overlay">
         <h2>TACTICAL RANGE</h2>
-        <p>Tap heads quickly to score points & buy upgrades!</p>
-        <p class="sub-hint">⭐ Golden heads award 3x combo points!</p>
+        <p>Tap head targets quickly & rack up points!</p>
+        <p class="sub-hint">⚠️ WARNING: Avoid the Bombs! Shooting a bomb resets your score to 0!</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
-      <!-- Pause / Shop Modal -->
+      <!-- Armory / Shop Modal Overlay -->
       <div id="shop-modal" class="overlay hidden">
         <h2>ARMORY & UPGRADES</h2>
         <p class="pause-notice">⏸️ GAME PAUSED</p>
         
         <div class="shop-grid">
-
           <div class="shop-card">
             <div class="card-info">
               <h3>Double Multiplier</h3>
@@ -65,7 +64,7 @@
           <div class="shop-card">
             <div class="card-info">
               <h3>Bigger Heads (+25%)</h3>
-              <p>Makes head targets larger & easier to hit.</p>
+              <p>Makes target heads larger and easier to hit.</p>
             </div>
             <button id="buy-size" class="buy-btn">Buy (100 Pts)</button>
           </div>
@@ -93,20 +92,18 @@
             </div>
             <button id="buy-frenzy" class="buy-btn">Buy (120 Pts)</button>
           </div>
-
         </div>
 
-        <button id="close-shop-btn" class="glow-btn">RESUME GAME</button>
+        <button id="close-shop-btn" class="glow-btn large">RESUME GAME</button>
       </div>
 
-      <!-- Game Over Screen -->
+      <!-- Game Over Overlay -->
       <div id="game-over-screen" class="overlay hidden">
         <h2>ROUND COMPLETE</h2>
         <p class="final-score-text">FINAL SCORE: <span id="final-score">0</span></p>
         <button id="restart-btn" class="glow-btn large">PLAY AGAIN</button>
       </div>
     </main>
-
   </div>
 
   <script src="script.js"></script>
