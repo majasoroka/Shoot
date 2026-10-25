@@ -30,14 +30,15 @@
     <!-- Main Playing Area -->
     <main id="game-area">
       <div id="muzzle-flash" class="flash-effect"></div>
-      <!-- Animated Recoil Gun at bottom -->
-      <div id="weapon-gun" class="weapon-graphic"></div>
+      <div id="weapon-gun" class="weapon-graphic">
+        <div class="gun-barrel"></div>
+      </div>
       
       <!-- Start Screen Overlay -->
       <div id="start-screen" class="overlay">
         <h2>TACTICAL HEADSHOT RANGE</h2>
         <p>Real gun sound effects, blood splatters & moving targets!</p>
-        <p class="sub-hint">⚠️ Avoid Bombs! Shoot Flags & Heads to rack up high scores!</p>
+        <p class="sub-hint">⚠️ Avoid Bombs! Shoot Heads & Flags to rack up high scores!</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
@@ -89,7 +90,7 @@
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Target Frenzy (FIXED)</h3>
+              <h3>Target Frenzy</h3>
               <p>Instantly spawns 5 targets right now.</p>
             </div>
             <button id="buy-frenzy" class="buy-btn">Buy (80 Pts)</button>
@@ -111,6 +112,24 @@
     <footer class="game-footer">
       <span>🇺🇦 Зроблено Майєю</span>
     </footer>
+
+    <!-- Stats Tracker List -->
+    <section class="stats-tracker">
+      <h3>🎯 Target Hit Tracker</h3>
+      <ul id="tracker-list">
+        <li>Vladimir Putin 🇷🇺: <span id="count-head0">0</span></li>
+        <li>Donald Trump 🇺🇸: <span id="count-head1">0</span></li>
+        <li>Eduardo Bolsonaro 🇧🇷: <span id="count-head2">0</span></li>
+        <li>Flávio Bolsonaro 🇧🇷: <span id="count-head3">0</span></li>
+        <li>Jair Bolsonaro 🇧🇷: <span id="count-head4">0</span></li>
+        <li>Ben Gvir 🇮🇱: <span id="count-head5">0</span></li>
+        <li>Rupert Lowe 🇬🇧: <span id="count-head6">0</span></li>
+        <li>Nigel Farage 🇬🇧: <span id="count-head7">0</span></li>
+        <li>Benjamin Netanyahu 🇮🇱: <span id="count-head8">0</span></li>
+        <li>Israel Flag 🇮🇱: <span id="count-flag0">0</span></li>
+        <li>Russia Flag 🇷🇺: <span id="count-flag1">0</span></li>
+      </ul>
+    </section>
   </div>
 
   <script src="script.js"></script>
