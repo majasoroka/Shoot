@@ -32,7 +32,7 @@ function initAudio() {
   }
 }
 
-// Crisp, punchy gunshot sound generator
+// Crisp, explosive gunshot sound generator guaranteed to fire on mobile touch
 function playGunshotSound(isBomb = false) {
   initAudio();
   if (!audioCtx) return;
@@ -45,21 +45,21 @@ function playGunshotSound(isBomb = false) {
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.type = 'square';
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.exponentialRampValueAtTime(20, now + 0.5);
-    gain.gain.setValueAtTime(0.8, now);
-    gain.gain.exponentialRampValueAtTime(0.01, now + 0.5);
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampValueAtTime(20, now + 0.6);
+    gain.gain.setValueAtTime(1.0, now);
+    gain.gain.exponentialRampValueAtTime(0.01, now + 0.6);
     osc.start(now);
-    osc.stop(now + 0.5);
+    osc.stop(now + 0.6);
     return;
   }
 
-  // Dual-layer noise blast for realistic gunshot
-  const bufferSize = audioCtx.sampleRate * 0.25;
+  // Heavy blast buffer noise
+  const bufferSize = audioCtx.sampleRate * 0.3;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
+    data[i] = (Math.random() * 2 - 1);
   }
 
   const noise = audioCtx.createBufferSource();
@@ -67,19 +67,19 @@ function playGunshotSound(isBomb = false) {
 
   const filter = audioCtx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(2500, now);
-  filter.frequency.exponentialRampValueAtTime(150, now + 0.2);
+  filter.frequency.setValueAtTime(3000, now);
+  filter.frequency.exponentialRampValueAtTime(100, now + 0.25);
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(1.0, now);
-  gain.gain.exponentialRampValueAtTime(0.01, now + 0.22);
+  gain.gain.setValueAtTime(1.2, now);
+  gain.gain.exponentialRampValueAtTime(0.01, now + 0.28);
 
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(audioCtx.destination);
 
   noise.start(now);
-  noise.stop(now + 0.22);
+  noise.stop(now + 0.28);
 }
 
 // Game State Variables
@@ -247,7 +247,7 @@ function updateUI() {
   if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
 
-  // Update Tracker DOM Counts
+  // Live update Tracker DOM counts instantly
   for (let i = 0; i < 9; i++) {
     const el = document.getElementById(`count-head${i}`);
     if (el) el.innerText = hitCounts.head[i];
@@ -304,6 +304,11 @@ function startGame() {
   combo = 0;
   pointsMultiplier = 1;
   remainingTime = baseGameTime;
+  
+  // Reset hit counts on fresh deployment
+  hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  hitCounts.flag = [0, 0];
+
   updateUI();
 
   if (startScreen) startScreen.classList.add('hidden');
@@ -350,7 +355,7 @@ function triggerGunshotFX(x, y) {
 }
 
 function spawnBloodSplatter(x, y, isBomb) {
-  for (let i = 0; i < (isBomb ? 16 : 10); i++) {
+  for (let i = 0; i < (isBomb ? 18 : 12); i++) {
     const p = document.createElement('div');
     p.classList.add('particle');
     if (isBomb) p.classList.add('bomb-part');
@@ -358,7 +363,7 @@ function spawnBloodSplatter(x, y, isBomb) {
     p.style.top = `${y}px`;
 
     const angle = Math.random() * Math.PI * 2;
-    const dist = (isBomb ? 50 : 35) + Math.random() * 50;
+    const dist = (isBomb ? 55 : 35) + Math.random() * 55;
     p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
     p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
 
@@ -488,7 +493,7 @@ function moveTargets() {
 function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   target.classList.add('shot');
   combo++;
-  hitCounts.head[headIndex]++; // Increment specific person hit counter
+  hitCounts.head[headIndex]++; // Increment hit tracker instantly
 
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
@@ -518,7 +523,7 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
 function hitFlag(flag, clientX, clientY, flagIndex) {
   flag.classList.add('shot');
   combo++;
-  hitCounts.flag[flagIndex]++; // Increment specific flag hit counter
+  hitCounts.flag[flagIndex]++; // Increment flag hit tracker instantly
 
   let flagPoints = 50 * pointsMultiplier;
   points += flagPoints;
@@ -547,7 +552,10 @@ function hitBomb(bomb, clientX, clientY) {
   playGunshotSound(true);
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
+  // RESET SCORE AND KILL LIST TRACKER TO ZERO ON BOMB HIT!
   points = 0;
+  hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  hitCounts.flag = [0, 0];
   updateUI();
 
   gameArea.classList.remove('danger-flash');
@@ -556,7 +564,7 @@ function hitBomb(bomb, clientX, clientY) {
 
   const rect = gameArea.getBoundingClientRect();
   spawnBloodSplatter(clientX - rect.left, clientY - rect.top, true);
-  showPopup(clientX, clientY, 'BOOM! 0 PTS!', 'penalty');
+  showPopup(clientX, clientY, 'BOOM! STATS WIPED!', 'penalty');
 }
 
 function showPopup(x, y, text, customClass) {
