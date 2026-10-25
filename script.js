@@ -1,9 +1,20 @@
+// Expanded list of all 9 target heads
 const headImages = [
   'images/head1.png',
   'images/head2.png',
   'images/head3.png',
   'images/head4.png',
-  'images/head5.png'
+  'images/head5.png',
+  'images/head6.png',
+  'images/head7.png',
+  'images/head8.png',
+  'images/head9.png'
+];
+
+// Flag bonus targets
+const flagImages = [
+  'images/flag1.png',
+  'images/flag2.png'
 ];
 
 let audioCtx = null;
@@ -42,6 +53,14 @@ function playSound(type) {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
     osc.start(now);
     osc.stop(now + 0.1);
+  } else if (type === 'flag') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(500, now);
+    osc.frequency.setValueAtTime(1000, now + 0.1);
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
   } else if (type === 'crit') {
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(900, now);
@@ -138,7 +157,6 @@ if (gameArea) {
     if (!isGameActive || isPaused) return;
     triggerGunshotFX(e.clientX, e.clientY);
     playSound('shoot');
-    // Miss penalty: reset combo if clicking empty background
     if (e.target === gameArea || e.target === muzzleFlash) {
       combo = 0;
       updateUI();
@@ -218,7 +236,6 @@ if (buyFrenzyBtn) {
     if (points >= costs.frenzy && isGameActive && !isPaused) {
       points -= costs.frenzy;
       playSound('buy');
-      // FIXED: Instant frenzy burst of 5 targets
       for (let i = 0; i < 5; i++) {
         spawnEntity(false);
       }
@@ -268,7 +285,7 @@ function resumeTimers() {
   }, 1000);
 
   spawnInterval = setInterval(() => spawnEntity(), 750);
-  moveInterval = setInterval(moveTargets, 50); // Moving targets physics loop
+  moveInterval = setInterval(moveTargets, 50);
   if (autoTurretActive) startTurret();
 }
 
@@ -284,6 +301,7 @@ function startGame() {
 
   if (startScreen) startScreen.classList.add('hidden');
   if (shopModal) shopModal.classList.add('hidden');
+  if (gameOverScreen) shopModal.classList.add('hidden');
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
 
   clearEntities();
@@ -339,9 +357,11 @@ function spawnParticles(x, y, isBomb) {
 
 function spawnEntity(forceBombCheck = true) {
   if (!isGameActive || isPaused || !gameArea) return;
-  if (gameArea.querySelectorAll('.target-head:not(.shot), .target-bomb').length >= 6) return;
+  if (gameArea.querySelectorAll('.target-head:not(.shot), .target-flag:not(.shot), .target-bomb').length >= 6) return;
 
-  const isBomb = forceBombCheck && Math.random() < 0.22;
+  const randRoll = Math.random();
+  const isBomb = forceBombCheck && randRoll < 0.20;
+  const isFlag = !isBomb && randRoll < 0.35; // 15% chance for a Flag bonus
 
   if (isBomb) {
     const bomb = document.createElement('div');
@@ -365,6 +385,38 @@ function spawnEntity(forceBombCheck = true) {
       if (bomb.parentNode && !isPaused) bomb.remove();
     }, headLingerTime);
 
+  } else if (isFlag) {
+    const flag = document.createElement('img');
+    const randomFlag = flagImages[Math.floor(Math.random() * flagImages.length)];
+    flag.src = randomFlag;
+    flag.classList.add('target-flag');
+
+    flag.style.width = `${targetSize}px`;
+    flag.style.height = `${targetSize}px`;
+
+    const maxX = gameArea.clientWidth - targetSize - 20;
+    const maxY = gameArea.clientHeight - targetSize - 20;
+    let posX = Math.floor(Math.random() * maxX) + 10;
+    let posY = Math.floor(Math.random() * maxY) + 10;
+
+    flag.style.left = `${posX}px`;
+    flag.style.top = `${posY}px`;
+    flag.dataset.vx = (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.0);
+
+    flag.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (flag.classList.contains('shot') || isPaused) return;
+      hitFlag(flag, e.clientX, e.clientY);
+    });
+
+    gameArea.appendChild(flag);
+
+    setTimeout(() => {
+      if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) {
+        flag.remove();
+      }
+    }, headLingerTime);
+
   } else {
     const target = document.createElement('img');
     const randomHead = headImages[Math.floor(Math.random() * headImages.length)];
@@ -384,8 +436,6 @@ function spawnEntity(forceBombCheck = true) {
 
     target.style.left = `${posX}px`;
     target.style.top = `${posY}px`;
-
-    // Assign random drift velocity for moving target mechanics
     target.dataset.vx = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.2);
 
     target.addEventListener('pointerdown', (e) => {
@@ -404,19 +454,18 @@ function spawnEntity(forceBombCheck = true) {
   }
 }
 
-// Move targets smoothly left & right across the arena
 function moveTargets() {
   if (!isGameActive || isPaused || !gameArea) return;
-  const targets = gameArea.querySelectorAll('.target-head:not(.shot)');
+  const entities = gameArea.querySelectorAll('.target-head:not(.shot), .target-flag:not(.shot)');
   const maxW = gameArea.clientWidth - targetSize;
 
-  targets.forEach(t => {
+  entities.forEach(t => {
     let currentLeft = parseFloat(t.style.left) || 0;
     let vx = parseFloat(t.dataset.vx) || 1;
 
     currentLeft += vx;
     if (currentLeft <= 5 || currentLeft >= maxW - 5) {
-      t.dataset.vx = -vx; // Bounce off walls
+      t.dataset.vx = -vx;
     }
     t.style.left = `${currentLeft}px`;
   });
@@ -428,7 +477,7 @@ function hitTarget(target, clientX, clientY, isGolden) {
   
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
-  let comboBonus = Math.floor(combo / 3); // Extra bonus every 3 combo streak
+  let comboBonus = Math.floor(combo / 3);
   let hitPoints = (basePoints + comboBonus) * pointsMultiplier;
 
   if (isCrit) {
@@ -454,9 +503,27 @@ function hitTarget(target, clientX, clientY, isGolden) {
   }, 350);
 }
 
+function hitFlag(flag, clientX, clientY) {
+  flag.classList.add('shot');
+  combo++;
+  playSound('flag');
+
+  let flagPoints = 50 * pointsMultiplier;
+  points += flagPoints;
+  pointsMultiplier += 1; // Temporary multiplier boost for hitting a flag!
+  updateUI();
+
+  triggerGunshotFX(clientX, clientY);
+  showPopup(clientX, clientY, `FLAG! +${flagPoints} & MULT+1!`, 'flag');
+
+  setTimeout(() => {
+    if (flag.parentNode) flag.remove();
+  }, 350);
+}
+
 function hitBomb(bomb, clientX, clientY) {
   bomb.remove();
-  combo = 0; // Reset combo streak
+  combo = 0;
 
   if (hasShield) {
     hasShield = false;
@@ -469,7 +536,7 @@ function hitBomb(bomb, clientX, clientY) {
   playSound('bomb');
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
-  points = 0; // Wipe out score penalty
+  points = 0;
   updateUI();
 
   gameArea.classList.remove('danger-flash');
@@ -497,7 +564,7 @@ function showPopup(x, y, text, customClass) {
 
 function autoShootTarget() {
   if (!isGameActive || isPaused || !gameArea) return;
-  const activeTargets = gameArea.querySelectorAll('.target-head:not(.shot)');
+  const activeTargets = gameArea.querySelectorAll('.target-head:not(.shot), .target-flag:not(.shot)');
   if (activeTargets.length > 0) {
     const target = activeTargets[0];
     const rect = target.getBoundingClientRect();
@@ -507,7 +574,7 @@ function autoShootTarget() {
 
 function clearEntities() {
   if (!gameArea) return;
-  const entities = gameArea.querySelectorAll('.target-head, .target-bomb');
+  const entities = gameArea.querySelectorAll('.target-head, .target-flag, .target-bomb');
   entities.forEach(e => e.remove());
 }
 
