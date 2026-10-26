@@ -34,15 +34,8 @@
         <div class="gun-barrel"></div>
       </div>
       
-      <!-- Initial Warning Overlay -->
-      <div id="warning-screen" class="overlay">
-        <h2>WARNING‼️</h2>
-        <p class="warning-text">apparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.</p>
-        <button id="warning-ok-btn" class="glow-btn large">I UNDERSTAND</button>
-      </div>
-
-      <!-- Start Screen Overlay (Hidden initially until warning is acknowledged) -->
-      <div id="start-screen" class="overlay hidden">
+      <!-- Start Screen Overlay -->
+      <div id="start-screen" class="overlay">
         <h2>TACTICAL HEADSHOT RANGE</h2>
         <p class="sub-hint">FUCK ISRAEL • FUCK TRUMP • FUCK RUSSIA • الحرية لفلسطين • СЛАВА УКРАЇНІ</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
@@ -50,7 +43,7 @@
 
       <!-- Upgrades / Shop Modal Overlay -->
       <div id="shop-modal" class="overlay hidden">
-        <h2>UPGRADES</h2>
+        <h2>UPGRADES SHOP</h2>
         <p class="pause-notice">⏸️ GAME PAUSED</p>
         
         <div class="shop-grid">
@@ -102,7 +95,7 @@
       <div id="game-over-screen" class="overlay hidden">
         <h2>ROUND COMPLETE</h2>
         <p class="final-score-text">FINAL SCORE: <span id="final-score">0</span></p>
-        <p class="highscore-text">HIGH SCORE: <span id="highscore-display">0</span></p>
+        <p class="high-score-text">PERSONAL BEST: <span id="personal-best">0</span></p>
         <button id="restart-btn" class="glow-btn large">PLAY AGAIN</button>
       </div>
     </main>
