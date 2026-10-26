@@ -21,10 +21,8 @@ const bombSound = new Audio('audio/bomb.mp3');
 const israelSound = new Audio('audio/israel.mp3');
 const russiaSound = new Audio('audio/russia.mp3');
 
-// Array of all sounds to cut them off cleanly
 const allSounds = [gunshotSound, bombSound, israelSound, russiaSound];
 
-// Helper to stop all playing audio and play the new one cleanly
 function playCustomAudio(audioObj) {
   allSounds.forEach(sound => {
     sound.pause();
@@ -49,16 +47,15 @@ let baseGameTime = 30;
 let remainingTime = 30;
 let targetSize = 75;
 let headLingerTime = 1800;
-let autoTurretActive = false;
 let hasShield = false;
 let hasCrit = false;
+let customBgUnlocked = false;
 
 let isGameActive = false;
 let isPaused = false;
 
 let gameTimer = null;
 let spawnInterval = null;
-let turretInterval = null;
 let moveInterval = null;
 
 // Upgrade Costs
@@ -67,7 +64,7 @@ let costs = {
   time: 75,
   shield: 90,
   crit: 110,
-  turret: 200
+  bg: 150
 };
 
 // DOM Elements
@@ -95,7 +92,7 @@ const buyMultiplierBtn = document.getElementById('buy-multiplier');
 const buyTimeBtn = document.getElementById('buy-time');
 const buyShieldBtn = document.getElementById('buy-shield');
 const buyCritBtn = document.getElementById('buy-crit');
-const buyTurretBtn = document.getElementById('buy-turret');
+const buyBgBtn = document.getElementById('buy-bg');
 
 // Event Listeners
 if (startBtn) startBtn.addEventListener('click', startGame);
@@ -117,7 +114,7 @@ if (gameArea) {
   });
 }
 
-// Shop Upgrades
+// Shop Upgrades (Silent purchases - no gunshot sound on buying)
 if (buyMultiplierBtn) {
   buyMultiplierBtn.addEventListener('click', () => {
     if (points >= costs.multiplier) {
@@ -125,7 +122,6 @@ if (buyMultiplierBtn) {
       pointsMultiplier *= 2;
       costs.multiplier = Math.floor(costs.multiplier * 2.5);
       buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
@@ -139,7 +135,6 @@ if (buyTimeBtn) {
       baseGameTime += 10;
       costs.time = Math.floor(costs.time * 2);
       buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
-      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
@@ -152,7 +147,6 @@ if (buyShieldBtn) {
       hasShield = true;
       buyShieldBtn.innerText = 'ACTIVE 🛡️';
       buyShieldBtn.disabled = true;
-      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
@@ -165,20 +159,21 @@ if (buyCritBtn) {
       hasCrit = true;
       buyCritBtn.innerText = 'ACTIVE 💥';
       buyCritBtn.disabled = true;
-      playCustomAudio(gunshotSound);
       updateUI();
     }
   });
 }
 
-if (buyTurretBtn) {
-  buyTurretBtn.addEventListener('click', () => {
-    if (points >= costs.turret && !autoTurretActive) {
-      points -= costs.turret;
-      autoTurretActive = true;
-      buyTurretBtn.innerText = 'OWNED';
-      playCustomAudio(gunshotSound);
-      if (isGameActive && !isPaused) startTurret();
+if (buyBgBtn) {
+  buyBgBtn.addEventListener('click', () => {
+    if (points >= costs.bg && !customBgUnlocked) {
+      points -= costs.bg;
+      customBgUnlocked = true;
+      buyBgBtn.innerText = 'UNLOCKED 🖼️';
+      buyBgBtn.disabled = true;
+      if (gameArea) {
+        gameArea.style.backgroundImage = "url('background.jpg')";
+      }
       updateUI();
     }
   });
@@ -203,7 +198,7 @@ function updateUI() {
   if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
   if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
   if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
-  if (buyTurretBtn) buyTurretBtn.disabled = points < costs.turret || autoTurretActive;
+  if (buyBgBtn) buyBgBtn.disabled = points < costs.bg || customBgUnlocked;
 }
 
 function openShop() {
@@ -211,7 +206,6 @@ function openShop() {
   isPaused = true;
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
-  if (turretInterval) clearInterval(turretInterval);
   if (moveInterval) clearInterval(moveInterval);
   if (shopModal) shopModal.classList.remove('hidden');
   updateUI();
@@ -234,7 +228,6 @@ function resumeTimers() {
 
   spawnInterval = setInterval(() => spawnEntity(), 750);
   moveInterval = setInterval(moveTargets, 50);
-  if (autoTurretActive) startTurret();
 }
 
 function startGame() {
@@ -248,6 +241,15 @@ function startGame() {
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
 
+  // Reset background if not unlocked
+  if (gameArea) {
+    if (customBgUnlocked) {
+      gameArea.style.backgroundImage = "url('background.jpg')";
+    } else {
+      gameArea.style.backgroundImage = "";
+    }
+  }
+
   updateUI();
 
   if (startScreen) startScreen.classList.add('hidden');
@@ -256,11 +258,6 @@ function startGame() {
 
   clearEntities();
   resumeTimers();
-}
-
-function startTurret() {
-  if (turretInterval) clearInterval(turretInterval);
-  turretInterval = setInterval(autoShootTarget, 1200);
 }
 
 function triggerGunshotFX(x, y) {
@@ -434,7 +431,6 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   combo++;
   hitCounts.head[headIndex]++;
 
-  // ALL PEOPLE NOW PLAY THE STANDARD GUNSHOT SOUND
   playCustomAudio(gunshotSound);
 
   let isCrit = hasCrit && Math.random() < 0.25;
@@ -467,11 +463,10 @@ function hitFlag(flag, clientX, clientY, flagIndex) {
   combo++;
   hitCounts.flag[flagIndex]++;
 
-  // ONLY FLAGS PLAY THE COUNTRY AUDIO TRACKS
   if (flagIndex === 0) {
-    playCustomAudio(israelSound); // Israel Flag
+    playCustomAudio(israelSound);
   } else if (flagIndex === 1) {
-    playCustomAudio(russiaSound); // Russia Flag
+    playCustomAudio(russiaSound);
   }
 
   let flagPoints = 50 * pointsMultiplier;
@@ -529,17 +524,6 @@ function showPopup(x, y, text, customClass) {
   setTimeout(() => popup.remove(), 600);
 }
 
-function autoShootTarget() {
-  if (!isGameActive || isPaused || !gameArea) return;
-  const activeTargets = gameArea.querySelectorAll('.target-head:not(.shot), .target-flag:not(.shot)');
-  if (activeTargets.length > 0) {
-    const target = activeTargets[0];
-    const rect = target.getBoundingClientRect();
-    const headIdx = parseInt(target.dataset.headIndex) || 0;
-    hitTarget(target, rect.left + rect.width / 2, rect.top + rect.height / 2, target.classList.contains('golden'), headIdx);
-  }
-}
-
 function clearEntities() {
   if (!gameArea) return;
   const entities = gameArea.querySelectorAll('.target-head, .target-flag, .target-bomb');
@@ -551,7 +535,6 @@ function endGame() {
   isPaused = false;
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
-  if (turretInterval) clearInterval(turretInterval);
   if (moveInterval) clearInterval(moveInterval);
   clearEntities();
 
