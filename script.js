@@ -154,7 +154,7 @@ window.addEventListener('DOMContentLoaded', () => {
   buyCritBtn = document.getElementById('buy-crit');
   buyBgBtn = document.getElementById('buy-bg');
 
-  // Listen for Firebase session persistence (keeps user logged in across page reloads)
+  // Persistent Session Checker
   auth.onAuthStateChanged(async (user) => {
     if (user) {
       const uid = user.uid;
@@ -163,12 +163,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
       try {
         const userDoc = await db.collection("users").doc(uid).get();
-        if (userDoc.exists) {
-          username = userDoc.data().username || username;
+        if (userDoc.exists && userDoc.data().username) {
+          username = userDoc.data().username;
           pfp = userDoc.data().pfp || pfp;
         }
       } catch (err) {
-        console.log("Firestore profile load warning:", err);
+        console.log("Profile load fallback used");
       }
 
       currentUserData = { uid, username, email: user.email, pfp };
@@ -183,7 +183,7 @@ window.addEventListener('DOMContentLoaded', () => {
     isRegisterMode = !isRegisterMode;
     if (isRegisterMode) {
       authEmailInput.classList.remove('hidden');
-      authLoginInput.placeholder = "Username (e.g. Maja)";
+      authLoginInput.placeholder = "Username (e.g. maja)";
       registerTabSubmit.classList.remove('hidden');
       loginTabSubmit.classList.add('hidden');
       toggleAuthModeBtn.innerText = "Already have an account? Log in here";
@@ -212,11 +212,11 @@ window.addEventListener('DOMContentLoaded', () => {
       const uid = userCred.user.uid;
       const defaultPfp = "images/default-avatar.png";
 
-      await db.collection("users").doc(uid).set({
+      db.collection("users").doc(uid).set({
         username: username,
         email: email,
         pfp: defaultPfp
-      }, { merge: true });
+      }, { merge: true }).catch(err => console.log("Firestore sync note:", err));
 
       currentUserData = { uid, username, email, pfp: defaultPfp };
       transitionToGame();
@@ -225,36 +225,28 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Log in with either Email or Username
+  // Bulletproof Login: Supports entering either Email or Username directly
   loginTabSubmit.addEventListener('click', async () => {
-    const loginInput = authLoginInput.value.trim();
+    let loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
 
     if (!loginInput || !password) {
-      authError.innerText = "Please enter login and password.";
+      authError.innerText = "Please enter username/email and password.";
       return;
     }
 
+    // If user typed a username without '@', map it to their game account email format
+    if (!loginInput.includes('@')) {
+      loginInput = `${loginInput.toLowerCase().replace(/[^a-z0-9]/g, '')}@tacticalheadshot.game`;
+    }
+
     try {
-      let emailToUse = loginInput;
-
-      // If they typed a username instead of an email, look up their email in Firestore
-      if (!loginInput.includes('@')) {
-        const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
-        if (querySnapshot.empty) {
-          authError.innerText = "Username not found.";
-          return;
-        }
-        emailToUse = querySnapshot.docs[0].data().email;
-      }
-
-      await auth.signInWithEmailAndPassword(emailToUse, password);
+      await auth.signInWithEmailAndPassword(loginInput, password);
     } catch (error) {
       authError.innerText = error.message;
     }
   });
 
-  // Log Out button in Account settings
   logoutBtn.addEventListener('click', async () => {
     try {
       await auth.signOut();
@@ -339,7 +331,7 @@ window.addEventListener('DOMContentLoaded', () => {
         playerNameDisplay.innerText = newUsername;
       }
 
-      await userRef.set(updateData, { merge: true });
+      userRef.set(updateData, { merge: true }).catch(err => console.log(err));
 
       if (newPassword) {
         await auth.currentUser.updatePassword(newPassword);
@@ -925,6 +917,6 @@ function endGame(titleText = "ROUND COMPLETE") {
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
-  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
+  if (personalBestDisplay) finalScoreDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
