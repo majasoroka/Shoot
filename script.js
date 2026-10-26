@@ -189,7 +189,7 @@ window.addEventListener('DOMContentLoaded', () => {
       toggleAuthModeBtn.innerText = "Already have an account? Log in here";
     } else {
       authEmailInput.classList.add('hidden');
-      authLoginInput.placeholder = "Username or Email";
+      authLoginInput.placeholder = "Current Username or Email";
       loginTabSubmit.classList.remove('hidden');
       registerTabSubmit.classList.add('hidden');
       toggleAuthModeBtn.innerText = "Need an account? Register here";
@@ -225,7 +225,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Flexible Login: Supports entering either Email or Username
+  // Strict Login: Supports email or your CURRENT active username from Firestore
   loginTabSubmit.addEventListener('click', async () => {
     const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
@@ -238,11 +238,11 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       let emailToUse = loginInput;
 
-      // If they typed a username instead of an email, look up their email in Firestore
+      // If it's not an email, look up your current active username in Firestore
       if (!loginInput.includes('@')) {
         const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
         if (querySnapshot.empty) {
-          authError.innerText = "Username not found.";
+          authError.innerText = "Current username not found.";
           return;
         }
         emailToUse = querySnapshot.docs[0].data().email;
@@ -924,6 +924,6 @@ function endGame(titleText = "ROUND COMPLETE") {
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
-  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
+  if (personalBestDisplay) finalScoreDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
