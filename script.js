@@ -93,7 +93,7 @@ let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
 let authScreen, authLoginInput, authEmailInput, authPasswordInput, loginTabSubmit, registerTabSubmit, toggleAuthModeBtn, authError;
 let startScreen, playerNameDisplay, hudUserPfp, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
 let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount, leaderboardList;
-let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, logoutBtn, deleteAccountBtn, accountMsg;
+let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, logoutBtn, accountMsg;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -146,7 +146,6 @@ window.addEventListener('DOMContentLoaded', () => {
   settingsPasswordInput = document.getElementById('settings-password-input');
   saveAccountBtn = document.getElementById('save-account-btn');
   logoutBtn = document.getElementById('logout-btn');
-  deleteAccountBtn = document.getElementById('delete-account-btn');
   accountMsg = document.getElementById('account-msg');
 
   buyMultiplierBtn = document.getElementById('buy-multiplier');
@@ -266,39 +265,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Instant Non-Freezing Delete Account Feature
-  if (deleteAccountBtn) {
-    deleteAccountBtn.addEventListener('click', async () => {
-      if (!confirm("Are you sure you want to delete your account?")) return;
-
-      try {
-        accountMsg.innerText = "Deleting account...";
-        const user = auth.currentUser;
-        
-        if (user) {
-          await db.collection("users").doc(user.uid).delete().catch(err => console.log(err));
-          // Clean up leaderboard entry as well
-          await db.collection("leaderboard").doc(user.uid).delete().catch(err => console.log(err));
-          await user.delete().catch(async () => {
-            await auth.signOut();
-          });
-        }
-      } catch (error) {
-        console.log("Deletion fallback triggered:", error);
-        try { await auth.signOut(); } catch (e) {}
-      }
-
-      currentUserData = null;
-      shopModal.classList.add('hidden');
-      startScreen.classList.add('hidden');
-      authScreen.classList.remove('hidden');
-      authLoginInput.value = "";
-      authPasswordInput.value = "";
-      settingsPasswordInput.value = "";
-      accountMsg.innerText = "";
-    });
-  }
-
   function transitionToGame() {
     authScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
@@ -347,38 +313,30 @@ window.addEventListener('DOMContentLoaded', () => {
     accountMsg.innerText = "";
   }
 
-  // Save Account Changes (Username, PFP, Password)
+  // Save Account Changes (PFP & Password Only)
   saveAccountBtn.addEventListener('click', async () => {
     if (!currentUserData) return;
-    const newUsername = settingsUsernameInput.value.trim();
     const newPassword = settingsPasswordInput.value.trim();
-
-    if (!newUsername) {
-      accountMsg.innerText = "Username cannot be empty.";
-      return;
-    }
 
     try {
       accountMsg.innerText = "Saving changes...";
       const userRef = db.collection("users").doc(currentUserData.uid);
 
-      let updateData = { username: newUsername };
+      let updateData = {};
       if (selectedNewPfpBase64) {
         updateData.pfp = selectedNewPfpBase64;
         currentUserData.pfp = selectedNewPfpBase64;
         hudUserPfp.src = selectedNewPfpBase64;
+
+        // Also update leaderboard profile picture if entry exists
+        const lbRef = db.collection("leaderboard").doc(currentUserData.uid);
+        const lbDoc = await lbRef.get();
+        if (lbDoc.exists) {
+          await lbRef.set({ pfp: selectedNewPfpBase64 }, { merge: true });
+        }
       }
 
       await userRef.set(updateData, { merge: true });
-      currentUserData.username = newUsername;
-      playerNameDisplay.innerText = newUsername;
-
-      // Also update username on existing leaderboard entry if present
-      const lbRef = db.collection("leaderboard").doc(currentUserData.uid);
-      const lbDoc = await lbRef.get();
-      if (lbDoc.exists) {
-        await lbRef.set({ username: newUsername, pfp: currentUserData.pfp }, { merge: true });
-      }
 
       if (newPassword) {
         const user = auth.currentUser;
@@ -473,7 +431,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateUI();
 });
 
-// Save Score: Ensures each user has only ONE entry and only updates if score is higher
+// Save Score: Ensures exactly one entry per user ID, updating automatically if new score is higher
 async function saveScoreToLeaderboard(score) {
   if (!currentUserData) return;
   const userScoreRef = db.collection("leaderboard").doc(currentUserData.uid);
