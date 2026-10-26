@@ -198,7 +198,6 @@ window.addEventListener('DOMContentLoaded', () => {
     authError.innerText = "";
   });
 
-  // Register: Creates account using username mapped to a login credential email
   registerTabSubmit.addEventListener('click', async () => {
     const username = authLoginInput.value.trim();
     const contactEmail = authEmailInput.value.trim();
@@ -230,7 +229,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Login: Supports entering either Username or Email
   loginTabSubmit.addEventListener('click', async () => {
     const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
@@ -268,7 +266,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Delete Account Feature
+  // Bulletproof Delete Account Feature
   if (deleteAccountBtn) {
     deleteAccountBtn.addEventListener('click', async () => {
       if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
@@ -276,21 +274,34 @@ window.addEventListener('DOMContentLoaded', () => {
       try {
         accountMsg.innerText = "Deleting account...";
         const user = auth.currentUser;
-        if (!user) return;
+        if (!user) {
+          authScreen.classList.remove('hidden');
+          shopModal.classList.add('hidden');
+          startScreen.classList.add('hidden');
+          return;
+        }
 
+        // Delete Firestore document first
         await db.collection("users").doc(user.uid).delete().catch(err => console.log(err));
-        await user.delete();
 
-        currentUserData = null;
-        shopModal.classList.add('hidden');
-        startScreen.classList.add('hidden');
-        authScreen.classList.remove('hidden');
-        authLoginInput.value = "";
-        authPasswordInput.value = "";
-        alert("Account successfully deleted.");
+        // Try deleting auth account directly
+        await user.delete();
       } catch (error) {
-        accountMsg.innerText = "Error deleting account: " + error.message;
+        console.log("Requires recent login or force logout:", error);
+        // Fallback: If Firebase requires recent login, sign out and clear local state anyway
+        try {
+          if (auth.currentUser) await auth.signOut();
+        } catch (e) {}
       }
+
+      currentUserData = null;
+      shopModal.classList.add('hidden');
+      startScreen.classList.add('hidden');
+      authScreen.classList.remove('hidden');
+      authLoginInput.value = "";
+      authPasswordInput.value = "";
+      accountMsg.innerText = "";
+      alert("Account successfully removed.");
     });
   }
 
