@@ -93,7 +93,7 @@ let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
 let authScreen, authLoginInput, authEmailInput, authPasswordInput, loginTabSubmit, registerTabSubmit, toggleAuthModeBtn, authError;
 let startScreen, playerNameDisplay, hudUserPfp, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
 let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount, leaderboardList;
-let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, logoutBtn, accountMsg;
+let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, logoutBtn, deleteAccountBtn, accountMsg;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -146,6 +146,7 @@ window.addEventListener('DOMContentLoaded', () => {
   settingsPasswordInput = document.getElementById('settings-password-input');
   saveAccountBtn = document.getElementById('save-account-btn');
   logoutBtn = document.getElementById('logout-btn');
+  deleteAccountBtn = document.getElementById('delete-account-btn');
   accountMsg = document.getElementById('account-msg');
 
   buyMultiplierBtn = document.getElementById('buy-multiplier');
@@ -189,7 +190,7 @@ window.addEventListener('DOMContentLoaded', () => {
       toggleAuthModeBtn.innerText = "Already have an account? Log in here";
     } else {
       authEmailInput.classList.add('hidden');
-      authLoginInput.placeholder = "Current Username or Email";
+      authLoginInput.placeholder = "Username or Email";
       loginTabSubmit.classList.remove('hidden');
       registerTabSubmit.classList.add('hidden');
       toggleAuthModeBtn.innerText = "Need an account? Register here";
@@ -197,35 +198,39 @@ window.addEventListener('DOMContentLoaded', () => {
     authError.innerText = "";
   });
 
+  // Register: Creates account using username mapped to a login credential email
   registerTabSubmit.addEventListener('click', async () => {
     const username = authLoginInput.value.trim();
-    const email = authEmailInput.value.trim();
+    const contactEmail = authEmailInput.value.trim();
     const password = authPasswordInput.value.trim();
 
-    if (!username || !email || !password) {
+    if (!username || !contactEmail || !password) {
       authError.innerText = "Please fill out all fields.";
       return;
     }
 
     try {
-      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      const cleanUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const authEmail = `${cleanUsername}@tacticalheadshot.game`;
+
+      const userCred = await auth.createUserWithEmailAndPassword(authEmail, password);
       const uid = userCred.user.uid;
       const defaultPfp = "images/default-avatar.png";
 
       await db.collection("users").doc(uid).set({
         username: username,
-        email: email,
+        contactEmail: contactEmail,
         pfp: defaultPfp
       }, { merge: true });
 
-      currentUserData = { uid, username, email, pfp: defaultPfp };
+      currentUserData = { uid, username, email: authEmail, pfp: defaultPfp };
       transitionToGame();
     } catch (error) {
       authError.innerText = error.message;
     }
   });
 
-  // Strict Login: Supports email or your CURRENT active username from Firestore
+  // Login: Supports entering either Username or Email
   loginTabSubmit.addEventListener('click', async () => {
     const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
@@ -236,21 +241,16 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      let emailToUse = loginInput;
+      let authEmailToUse = loginInput;
 
-      // If it's not an email, look up your current active username in Firestore
       if (!loginInput.includes('@')) {
-        const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
-        if (querySnapshot.empty) {
-          authError.innerText = "Current username not found.";
-          return;
-        }
-        emailToUse = querySnapshot.docs[0].data().email;
+        const cleanUsername = loginInput.toLowerCase().replace(/[^a-z0-9]/g, '');
+        authEmailToUse = `${cleanUsername}@tacticalheadshot.game`;
       }
 
-      await auth.signInWithEmailAndPassword(emailToUse, password);
+      await auth.signInWithEmailAndPassword(authEmailToUse, password);
     } catch (error) {
-      authError.innerText = error.message;
+      authError.innerText = "Invalid username/email or password.";
     }
   });
 
@@ -267,6 +267,32 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error("Logout error:", error);
     }
   });
+
+  // Delete Account Feature
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener('click', async () => {
+      if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
+
+      try {
+        accountMsg.innerText = "Deleting account...";
+        const user = auth.currentUser;
+        if (!user) return;
+
+        await db.collection("users").doc(user.uid).delete().catch(err => console.log(err));
+        await user.delete();
+
+        currentUserData = null;
+        shopModal.classList.add('hidden');
+        startScreen.classList.add('hidden');
+        authScreen.classList.remove('hidden');
+        authLoginInput.value = "";
+        authPasswordInput.value = "";
+        alert("Account successfully deleted.");
+      } catch (error) {
+        accountMsg.innerText = "Error deleting account: " + error.message;
+      }
+    });
+  }
 
   function transitionToGame() {
     authScreen.classList.add('hidden');
@@ -318,7 +344,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   saveAccountBtn.addEventListener('click', async () => {
     if (!currentUserData) return;
-    const newUsername = settingsUsernameInput.value.trim();
     const newPassword = settingsPasswordInput.value.trim();
 
     try {
@@ -330,12 +355,6 @@ window.addEventListener('DOMContentLoaded', () => {
         updateData.pfp = selectedNewPfpBase64;
         currentUserData.pfp = selectedNewPfpBase64;
         hudUserPfp.src = selectedNewPfpBase64;
-      }
-
-      if (newUsername && newUsername !== currentUserData.username) {
-        updateData.username = newUsername;
-        currentUserData.username = newUsername;
-        playerNameDisplay.innerText = newUsername;
       }
 
       await userRef.set(updateData, { merge: true });
@@ -924,6 +943,6 @@ function endGame(titleText = "ROUND COMPLETE") {
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
-  if (personalBestDisplay) finalScoreDisplay.innerText = personalBest;
+  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
