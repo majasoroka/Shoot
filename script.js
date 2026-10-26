@@ -1,13 +1,14 @@
 const headImages = [
-  'images/head1.png', // 0: Putin
-  'images/head2.png', // 1: Trump
-  'images/head3.png', // 2: Eduardo Bolsonaro
-  'images/head4.png', // 3: Flávio Bolsonaro
-  'images/head5.png', // 4: Jair Bolsonaro
-  'images/head6.png', // 5: Ben Gvir
-  'images/head7.png', // 6: Rupert Lowe
-  'images/head8.png', // 7: Nigel Farage
-  'images/head9.png'  // 8: Netanyahu
+  'images/head1.png',  // 0: Putin
+  'images/head2.png',  // 1: Trump
+  'images/head3.png',  // 2: Eduardo Bolsonaro
+  'images/head4.png',  // 3: Flávio Bolsonaro
+  'images/head5.png',  // 4: Jair Bolsonaro
+  'images/head6.png',  // 5: Ben Gvir
+  'images/head7.png',  // 6: Rupert Lowe
+  'images/head8.png',  // 7: Nigel Farage
+  'images/head9.png',  // 8: Netanyahu
+  'images/head10.png'  // 9: Moaz
 ];
 
 const flagImages = [
@@ -49,9 +50,9 @@ function playCustomAudio(audioObj) {
   audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
 }
 
-// Tracking shots for each target
+// Tracking shots for each target (Expanded to 10 heads)
 let hitCounts = {
-  head: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+  head: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   flag: [0, 0]
 };
 
@@ -289,7 +290,7 @@ function updateUI() {
   if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
 
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 10; i++) {
     const el = document.getElementById(`count-head${i}`);
     if (el) el.innerText = hitCounts.head[i];
   }
@@ -371,7 +372,7 @@ function startGame() {
   currentEquippedGun = 0;
   if (currentGunImg) currentGunImg.src = gunsData[0].file;
 
-  hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
 
   if (gameArea) {
@@ -625,7 +626,7 @@ function hitBomb(bomb, clientX, clientY) {
   if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
   points = 0;
-  hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
   updateUI();
 
