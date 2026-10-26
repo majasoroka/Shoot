@@ -15,16 +15,16 @@ const flagImages = [
   'images/flag2.png'  // 1: Russia Flag
 ];
 
-// 8 Guns Definition with Prices & File paths
+// 8 Guns Definition with High-Score Scaled Prices & File paths
 const gunsData = [
   { name: "Standard Pistol", price: 0, file: "guns/gun1.png" },
-  { name: "Compact Sidearm", price: 60, file: "guns/gun2.png" },
-  { name: "Tactical Carbine", price: 120, file: "guns/gun3.png" },
-  { name: "Holographic SMG", price: 200, file: "guns/gun4.png" },
-  { name: "Heavy Assaulter", price: 320, file: "guns/gun5.png" },
-  { name: "Cyberpunk Rifle", price: 480, file: "guns/gun6.png" },
-  { name: "Advanced Marksman", price: 700, file: "guns/gun7.png" },
-  { name: "Heavy RPG", price: 1000, file: "guns/gun8.png" }
+  { name: "Compact Sidearm", price: 5000, file: "guns/gun2.png" },
+  { name: "Tactical Carbine", price: 15000, file: "guns/gun3.png" },
+  { name: "Holographic SMG", price: 35000, file: "guns/gun4.png" },
+  { name: "Heavy Assaulter", price: 70000, file: "guns/gun5.png" },
+  { name: "Cyberpunk Rifle", price: 120000, file: "guns/gun6.png" },
+  { name: "Advanced Marksman", price: 180000, file: "guns/gun7.png" },
+  { name: "Heavy RPG", price: 250000, file: "guns/gun8.png" }
 ];
 
 // Gun Inventory & State (Resets every round)
@@ -275,7 +275,7 @@ function updateGunShopUI() {
       btn.classList.remove('equipped-status');
     } else {
       const price = gunsData[i].price;
-      btn.innerText = `Buy (${price} Pts)`;
+      btn.innerText = `Buy (${price.toLocaleString()} Pts)`;
       btn.disabled = points < price;
       btn.classList.remove('equipped-status');
     }
