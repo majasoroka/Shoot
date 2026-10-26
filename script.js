@@ -69,8 +69,8 @@ let costs = { ...initialCosts };
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
-let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
-let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
+let mainStartBtn, lobbyShopBtn, restartBtn, shopToggleBtn, closeShopBtn;
+let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
@@ -85,6 +85,7 @@ window.addEventListener('DOMContentLoaded', () => {
   currentGunImg = document.getElementById('current-gun-img');
 
   mainStartBtn = document.getElementById('main-start-btn');
+  lobbyShopBtn = document.getElementById('lobby-shop-btn');
   restartBtn = document.getElementById('restart-btn');
   shopToggleBtn = document.getElementById('shop-toggle-btn');
   closeShopBtn = document.getElementById('close-shop-btn');
@@ -95,6 +96,7 @@ window.addEventListener('DOMContentLoaded', () => {
   gameOverTitle = document.getElementById('game-over-title');
   finalScoreDisplay = document.getElementById('final-score');
   personalBestDisplay = document.getElementById('personal-best');
+  shopStatusNotice = document.getElementById('shop-status-notice');
 
   tabUpgradesBtn = document.getElementById('tab-upgrades-btn');
   tabGunsBtn = document.getElementById('tab-guns-btn');
@@ -124,6 +126,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (restartBtn) restartBtn.addEventListener('click', startGame);
 
   if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
+  if (lobbyShopBtn) lobbyShopBtn.addEventListener('click', openShop);
   if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 
   for (let i = 0; i < 8; i++) {
@@ -144,6 +147,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   if (buyMultiplierBtn) buyMultiplierBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
     if (points >= costs.multiplier) {
       points -= costs.multiplier;
       pointsMultiplier *= 2;
@@ -154,6 +158,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   if (buyTimeBtn) buyTimeBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
     if (points >= costs.time) {
       points -= costs.time;
       remainingTime += 10;
@@ -165,6 +170,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   if (buyShieldBtn) buyShieldBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
     if (points >= costs.shield && !hasShield) {
       points -= costs.shield;
       hasShield = true;
@@ -175,6 +181,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   if (buyCritBtn) buyCritBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
     if (points >= costs.crit && !hasCrit) {
       points -= costs.crit;
       hasCrit = true;
@@ -185,6 +192,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   if (buyBgBtn) buyBgBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
     if (points >= costs.bg && !customBgUnlocked) {
       points -= costs.bg;
       customBgUnlocked = true;
@@ -200,6 +208,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function handleGunClick(gunIndex) {
+  if (!isGameActive) return;
   if (ownedGuns[gunIndex]) {
     currentEquippedGun = gunIndex;
     if (currentGunImg) currentGunImg.src = gunsData[gunIndex].file;
@@ -220,6 +229,14 @@ function updateGunShopUI() {
   for (let i = 0; i < 8; i++) {
     const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
     if (!btn) continue;
+
+    if (!isGameActive) {
+      btn.innerText = "Unavailable (Not in Round)";
+      btn.disabled = true;
+      btn.classList.remove('equipped-status');
+      continue;
+    }
+
     if (currentEquippedGun === i) {
       btn.innerText = "Equipped";
       btn.disabled = true;
@@ -252,21 +269,34 @@ function updateUI() {
     if (el) el.innerText = hitCounts.flag[i];
   }
 
-  if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
-  if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
-  if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
-  if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
-  if (buyBgBtn) buyBgBtn.disabled = points < costs.bg || customBgUnlocked;
+  if (!isGameActive) {
+    if (buyMultiplierBtn) { buyMultiplierBtn.disabled = true; buyMultiplierBtn.innerText = "Unavailable"; }
+    if (buyTimeBtn) { buyTimeBtn.disabled = true; buyTimeBtn.innerText = "Unavailable"; }
+    if (buyShieldBtn) { buyShieldBtn.disabled = true; buyShieldBtn.innerText = "Unavailable"; }
+    if (buyCritBtn) { buyCritBtn.disabled = true; buyCritBtn.innerText = "Unavailable"; }
+    if (buyBgBtn) { buyBgBtn.disabled = true; buyBgBtn.innerText = "Unavailable"; }
+  } else {
+    if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
+    if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
+    if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
+    if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
+    if (buyBgBtn) buyBgBtn.disabled = points < costs.bg || customBgUnlocked;
+  }
 
   updateGunShopUI();
 }
 
 function openShop() {
-  if (!isGameActive) return;
-  isPaused = true;
-  clearInterval(gameTimer);
-  clearInterval(spawnInterval);
-  if (moveInterval) clearInterval(moveInterval);
+  if (isGameActive) {
+    isPaused = true;
+    clearInterval(gameTimer);
+    clearInterval(spawnInterval);
+    if (moveInterval) clearInterval(moveInterval);
+    if (shopStatusNotice) shopStatusNotice.innerText = "⏸️ GAME PAUSED";
+  } else {
+    if (shopStatusNotice) shopStatusNotice.innerText = "⚡ LOBBY ARMORY (START A ROUND TO BUY)";
+  }
+
   if (shopModal) shopModal.classList.remove('hidden');
   updateUI();
 }
@@ -388,7 +418,6 @@ function spawnBloodSplatter(x, y, isBomb) {
 
 function spawnEntity(forceBombCheck = true) {
   if (!isGameActive || isPaused || !gameArea) return;
-  // Removed target limit cap so targets spawn unlimited and continuously
 
   const randRoll = Math.random();
   const isBomb = forceBombCheck && randRoll < 0.18;
@@ -558,7 +587,7 @@ function hitPenaltyHead(target, clientX, clientY) {
 
   setTimeout(() => {
     if (target.parentNode) target.remove();
-    endGame("GAME OVER BITCH, DON’T SHOOT ME");
+    endGame("GAME OVER BITCH, DON’ْت SHOOT ME");
   }, 200);
 }
 
