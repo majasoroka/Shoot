@@ -39,8 +39,9 @@ const gunshotSound = new Audio('audio/gunshot.mp3');
 const bombSound = new Audio('audio/bomb.mp3');
 const israelSound = new Audio('audio/israel.mp3');
 const russiaSound = new Audio('audio/russia.mp3');
+const moazSound = new Audio('audio/moaz.mp3'); // Custom sound for Moaz
 
-const allSounds = [gunshotSound, bombSound, israelSound, russiaSound];
+const allSounds = [gunshotSound, bombSound, israelSound, russiaSound, moazSound];
 
 function playCustomAudio(audioObj) {
   allSounds.forEach(sound => {
@@ -446,7 +447,7 @@ function spawnEntity(forceBombCheck = true) {
 
   const randRoll = Math.random();
   const isBomb = forceBombCheck && randRoll < 0.18;
-  const isPenalty = !isBomb && randRoll < 0.28; // Chance for head11 penalty target
+  const isPenalty = !isBomb && randRoll < 0.28;
   const isFlag = !isBomb && !isPenalty && randRoll < 0.42;
 
   if (isBomb) {
@@ -595,7 +596,12 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   combo++;
   hitCounts.head[headIndex]++;
 
-  playCustomAudio(gunshotSound);
+  // Play custom sound for Moaz (index 9), otherwise play standard gunshot
+  if (headIndex === 9) {
+    playCustomAudio(moazSound);
+  } else {
+    playCustomAudio(gunshotSound);
+  }
 
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
