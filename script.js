@@ -27,7 +27,7 @@ const gunsData = [
   { name: "Heavy RPG", price: 250000, file: "guns/gun8.png" }
 ];
 
-// Gun Inventory & State (Resets every round)
+// Gun Inventory & State
 let ownedGuns = [true, false, false, false, false, false, false, false];
 let currentEquippedGun = 0;
 
@@ -74,14 +74,15 @@ let gameTimer = null;
 let spawnInterval = null;
 let moveInterval = null;
 
-// Upgrade Costs
-let costs = {
+// Upgrade Costs (Base tracking variables)
+let initialCosts = {
   multiplier: 50,
   time: 75,
   shield: 90,
   crit: 110,
   bg: 150
 };
+let costs = { ...initialCosts };
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
@@ -341,9 +342,31 @@ function startGame() {
   points = 0;
   combo = 0;
   pointsMultiplier = 1;
-  remainingTime = baseGameTime;
+  baseGameTime = 30;
+  remainingTime = 30;
   
-  // RESET GUN INVENTORY TO PISTOL ONLY EVERY ROUND
+  // FULL RESET OF ALL UPGRADES AND PURCHASES EVERY ROUND
+  costs = { ...initialCosts };
+  hasShield = false;
+  hasCrit = false;
+  customBgUnlocked = false;
+
+  if (buyMultiplierBtn) buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
+  if (buyTimeBtn) buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
+  if (buyShieldBtn) {
+    buyShieldBtn.innerText = `Buy (${costs.shield} Pts)`;
+    buyShieldBtn.disabled = false;
+  }
+  if (buyCritBtn) {
+    buyCritBtn.innerText = `Buy (${costs.crit} Pts)`;
+    buyCritBtn.disabled = false;
+  }
+  if (buyBgBtn) {
+    buyBgBtn.innerText = `Buy (${costs.bg} Pts)`;
+    buyBgBtn.disabled = false;
+  }
+
+  // RESET GUN INVENTORY TO PISTOL ONLY
   ownedGuns = [true, false, false, false, false, false, false, false];
   currentEquippedGun = 0;
   if (currentGunImg) currentGunImg.src = gunsData[0].file;
@@ -352,11 +375,7 @@ function startGame() {
   hitCounts.flag = [0, 0];
 
   if (gameArea) {
-    if (customBgUnlocked) {
-      gameArea.style.backgroundImage = "url('background.jpg')";
-    } else {
-      gameArea.style.backgroundImage = "";
-    }
+    gameArea.style.backgroundImage = "";
   }
 
   updateUI();
