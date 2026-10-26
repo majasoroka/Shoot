@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Tactical Headshot Arcade</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -31,26 +36,42 @@
     <main id="game-area">
       <div id="muzzle-flash" class="flash-effect"></div>
       
-      <!-- Dynamic Weapon Graphic -->
+      <!-- Dynamic Weapon Graphic (Flush to bottom edge) -->
       <div id="weapon-gun" class="weapon-graphic">
         <img id="current-gun-img" src="guns/gun1.png" alt="Weapon">
       </div>
       
-      <!-- Start Screen Overlay -->
-      <div id="start-screen" class="overlay">
+      <!-- Auth / Login Screen Overlay -->
+      <div id="auth-screen" class="overlay">
         <h2>TACTICAL HEADSHOT RANGE</h2>
+        <p class="sub-hint">Sign in or create an account to save scores to the global leaderboard!</p>
+        <div class="auth-form">
+          <input type="text" id="auth-username" placeholder="Username (e.g. Mya)" class="auth-input">
+          <input type="password" id="auth-password" placeholder="Password" class="auth-input">
+          <div class="auth-btns">
+            <button id="login-btn" class="glow-btn">LOG IN</button>
+            <button id="register-btn" class="glow-btn alt">REGISTER</button>
+          </div>
+          <p id="auth-error" class="auth-error-text"></p>
+        </div>
+      </div>
+
+      <!-- Start Screen Overlay (Shown after login) -->
+      <div id="start-screen" class="overlay hidden">
+        <h2>READY, <span id="player-name-display">SOLDIER</span>?</h2>
         <p class="sub-hint">FUCK ISRAEL • FUCK TRUMP • FUCK RUSSIA • الحرية لفلسطين • СЛАВА УКРАЇНІ</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
-      <!-- Upgrades & Gun Shop Modal Overlay -->
+      <!-- Upgrades, Gun Shop & Leaderboard Modal Overlay -->
       <div id="shop-modal" class="overlay hidden">
-        <h2>ARMORY & UPGRADES</h2>
+        <h2>ARMORY & INTEL</h2>
         <p class="pause-notice">⏸️ GAME PAUSED</p>
         
         <div class="shop-tabs">
           <button id="tab-upgrades-btn" class="tab-btn active">⚡ Upgrades</button>
           <button id="tab-guns-btn" class="tab-btn">🔫 Gun Shop</button>
+          <button id="tab-leaderboard-btn" class="tab-btn">🏆 Leaderboard</button>
         </div>
 
         <!-- Upgrades Tab View -->
@@ -161,6 +182,14 @@
             </div>
             <button id="gun-btn-7" class="buy-btn">Buy (250,000 Pts)</button>
           </div>
+        </div>
+
+        <!-- Leaderboard Tab View -->
+        <div id="section-leaderboard" class="shop-grid hidden">
+          <div class="leaderboard-header">🌍 Global High Scores</div>
+          <ul id="leaderboard-list">
+            <li>Loading global scores...</li>
+          </ul>
         </div>
 
         <button id="close-shop-btn" class="glow-btn large">RESUME GAME</button>
