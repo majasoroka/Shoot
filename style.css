@@ -120,14 +120,14 @@ body {
   100% { border-color: #00ffcc; box-shadow: inset 0 0 25px rgba(0,0,0,0.9); }
 }
 
-/* Dynamic Weapon Graphic (Box removed, sized up to fill bottom) */
+/* Dynamic Weapon Graphic (Flush to bottom edge, no floating) */
 .weapon-graphic {
   position: absolute;
-  bottom: -5px;
+  bottom: 0px;
   left: 50%;
   transform: translateX(-50%);
   width: 180px;
-  height: 120px;
+  height: 110px;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -136,12 +136,15 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
+  line-height: 0;
 }
 
 .weapon-graphic img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: bottom center;
+  display: block;
   filter: drop-shadow(0 -6px 15px rgba(0,0,0,0.95));
 }
 
