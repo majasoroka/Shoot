@@ -212,11 +212,11 @@ window.addEventListener('DOMContentLoaded', () => {
       const uid = userCred.user.uid;
       const defaultPfp = "images/default-avatar.png";
 
-      db.collection("users").doc(uid).set({
+      await db.collection("users").doc(uid).set({
         username: username,
         email: email,
         pfp: defaultPfp
-      }, { merge: true }).catch(err => console.log("Firestore sync note:", err));
+      }, { merge: true });
 
       currentUserData = { uid, username, email, pfp: defaultPfp };
       transitionToGame();
@@ -225,9 +225,9 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Bulletproof Login: Supports entering either Email or Username directly
+  // Flexible Login: Supports entering either Email or Username
   loginTabSubmit.addEventListener('click', async () => {
-    let loginInput = authLoginInput.value.trim();
+    const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
 
     if (!loginInput || !password) {
@@ -235,13 +235,20 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // If user typed a username without '@', map it to their game account email format
-    if (!loginInput.includes('@')) {
-      loginInput = `${loginInput.toLowerCase().replace(/[^a-z0-9]/g, '')}@tacticalheadshot.game`;
-    }
-
     try {
-      await auth.signInWithEmailAndPassword(loginInput, password);
+      let emailToUse = loginInput;
+
+      // If they typed a username instead of an email, look up their email in Firestore
+      if (!loginInput.includes('@')) {
+        const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
+        if (querySnapshot.empty) {
+          authError.innerText = "Username not found.";
+          return;
+        }
+        emailToUse = querySnapshot.docs[0].data().email;
+      }
+
+      await auth.signInWithEmailAndPassword(emailToUse, password);
     } catch (error) {
       authError.innerText = error.message;
     }
@@ -331,7 +338,7 @@ window.addEventListener('DOMContentLoaded', () => {
         playerNameDisplay.innerText = newUsername;
       }
 
-      userRef.set(updateData, { merge: true }).catch(err => console.log(err));
+      await userRef.set(updateData, { merge: true });
 
       if (newPassword) {
         await auth.currentUser.updatePassword(newPassword);
@@ -917,6 +924,6 @@ function endGame(titleText = "ROUND COMPLETE") {
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
-  if (personalBestDisplay) finalScoreDisplay.innerText = personalBest;
+  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
