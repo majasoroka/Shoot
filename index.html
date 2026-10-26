@@ -5,11 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Tactical Headshot Arcade</title>
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Firebase SDKs (Compat Version) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -40,31 +35,10 @@
       <div id="weapon-gun" class="weapon-graphic">
         <img id="current-gun-img" src="guns/gun1.png" alt="Weapon">
       </div>
-      
-      <!-- Auth / Login Screen Overlay -->
-      <div id="auth-screen" class="overlay">
-        <h2>TACTICAL HEADSHOT RANGE</h2>
-        <p class="sub-hint">Log in with your Username or Email!</p>
-        <div class="auth-form">
-          <input type="text" id="auth-login-input" placeholder="Username or Email" class="auth-input">
-          <input type="email" id="auth-email-input" placeholder="Valid Email (for Register only)" class="auth-input hidden">
-          <input type="password" id="auth-password" placeholder="Password" class="auth-input">
-          <div class="auth-btns">
-            <button id="login-tab-submit" class="glow-btn">LOG IN</button>
-            <button id="register-tab-submit" class="glow-btn alt hidden">REGISTER</button>
-          </div>
-          <button id="toggle-auth-mode" class="text-btn">Need an account? Register here</button>
-          <p id="auth-error" class="auth-error-text"></p>
-        </div>
-      </div>
 
-      <!-- Start Screen Overlay (Shown after login) -->
-      <div id="start-screen" class="overlay hidden">
-        <div class="user-profile-badge">
-          <img id="hud-user-pfp" src="images/default-avatar.png" alt="PFP">
-          <span id="player-name-display">SOLDIER</span>
-        </div>
-        <h2>READY FOR DEPLOYMENT?</h2>
+      <!-- Start Screen Overlay -->
+      <div id="start-screen" class="overlay">
+        <h2>TACTICAL HEADSHOT RANGE</h2>
         <p class="sub-hint">FUCK ISRAEL • FUCK TRUMP • FUCK RUSSIA • الحرية لفلسطين • СЛАВА УКРАЇНІ</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
@@ -77,8 +51,6 @@
         <div class="shop-tabs">
           <button id="tab-upgrades-btn" class="tab-btn active">⚡ Upgrades</button>
           <button id="tab-guns-btn" class="tab-btn">🔫 Guns</button>
-          <button id="tab-leaderboard-btn" class="tab-btn">🏆 Leaderboard</button>
-          <button id="tab-account-btn" class="tab-btn">⚙️ Account</button>
         </div>
 
         <!-- Upgrades Tab View -->
@@ -188,37 +160,6 @@
               <p>Most Expensive</p>
             </div>
             <button id="gun-btn-7" class="buy-btn">Buy (250,000 Pts)</button>
-          </div>
-        </div>
-
-        <!-- Leaderboard Tab View -->
-        <div id="section-leaderboard" class="shop-grid hidden">
-          <div class="leaderboard-header">🌍 Global High Scores</div>
-          <ul id="leaderboard-list">
-            <li>Loading global scores...</li>
-          </ul>
-        </div>
-
-        <!-- Account Settings Tab View -->
-        <div id="section-account" class="shop-grid hidden">
-          <div class="account-settings-box">
-            <h3>👤 Profile & Security</h3>
-            <div class="pfp-preview-container">
-              <img id="settings-pfp-preview" src="images/default-avatar.png" alt="Avatar">
-            </div>
-            
-            <label class="input-label">Upload New Profile Picture:</label>
-            <input type="file" id="settings-pfp-file" accept="image/*" class="auth-input file-input">
-            
-            <label class="input-label">Username (Permanent):</label>
-            <input type="text" id="settings-username-input" class="auth-input" disabled style="opacity: 0.7; cursor: not-allowed;">
-
-            <label class="input-label">New Password (Optional):</label>
-            <input type="password" id="settings-password-input" placeholder="New Password" class="auth-input">
-
-            <button id="save-account-btn" class="glow-btn">SAVE CHANGES</button>
-            <button id="logout-btn" class="glow-btn alt" style="margin-top: 5px;">LOG OUT</button>
-            <p id="account-msg" class="auth-error-text" style="color: #00ffcc;"></p>
           </div>
         </div>
 
