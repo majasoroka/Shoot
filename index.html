@@ -30,8 +30,10 @@
     <!-- Main Playing Area -->
     <main id="game-area">
       <div id="muzzle-flash" class="flash-effect"></div>
+      
+      <!-- Dynamic Weapon Graphic at Bottom -->
       <div id="weapon-gun" class="weapon-graphic">
-        <div class="gun-barrel"></div>
+        <img id="current-gun-img" src="guns/gun1.png" alt="Weapon">
       </div>
       
       <!-- Start Screen Overlay -->
@@ -41,12 +43,18 @@
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
-      <!-- Upgrades / Shop Modal Overlay -->
+      <!-- Upgrades & Gun Shop Modal Overlay -->
       <div id="shop-modal" class="overlay hidden">
-        <h2>UPGRADES SHOP</h2>
+        <h2>ARMORY & UPGRADES</h2>
         <p class="pause-notice">⏸️ GAME PAUSED</p>
         
-        <div class="shop-grid">
+        <div class="shop-tabs">
+          <button id="tab-upgrades-btn" class="tab-btn active">Upgrades</button>
+          <button id="tab-guns-btn" class="tab-btn">Gun Shop</button>
+        </div>
+
+        <!-- Upgrades Tab View -->
+        <div id="section-upgrades" class="shop-grid">
           <div class="shop-card">
             <div class="card-info">
               <h3>Double Multiplier</h3>
@@ -85,6 +93,73 @@
               <p>Changes arena background to the best person in history.</p>
             </div>
             <button id="buy-bg" class="buy-btn">Buy (150 Pts)</button>
+          </div>
+        </div>
+
+        <!-- Gun Shop Tab View -->
+        <div id="section-guns" class="shop-grid hidden">
+          <div class="shop-card gun-card" data-gun-id="0">
+            <div class="card-info">
+              <h3>Standard Pistol</h3>
+              <p>Owned (Starter)</p>
+            </div>
+            <button id="equip-gun-0" class="buy-btn equipped-status" disabled>Equipped</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="1">
+            <div class="card-info">
+              <h3>Compact Sidearm</h3>
+              <p>Fair Price</p>
+            </div>
+            <button id="gun-btn-1" class="buy-btn">Buy (60 Pts)</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="2">
+            <div class="card-info">
+              <h3>Tactical Carbine</h3>
+              <p>Fair Price</p>
+            </div>
+            <button id="gun-btn-2" class="buy-btn">Buy (120 Pts)</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="3">
+            <div class="card-info">
+              <h3>Holographic SMG</h3>
+              <p>Fair Price</p>
+            </div>
+            <button id="gun-btn-3" class="buy-btn">Buy (200 Pts)</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="4">
+            <div class="card-info">
+              <h3>Heavy Assaulter</h3>
+              <p>Fair Price</p>
+            </div>
+            <button id="gun-btn-4" class="buy-btn">Buy (320 Pts)</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="5">
+            <div class="card-info">
+              <h3>Cyberpunk Rifle</h3>
+              <p>Fair Price</p>
+            </div>
+            <button id="gun-btn-5" class="buy-btn">Buy (480 Pts)</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="6">
+            <div class="card-info">
+              <h3>Advanced Marksman</h3>
+              <p>Fair Price</p>
+            </div>
+            <button id="gun-btn-6" class="buy-btn">Buy (700 Pts)</button>
+          </div>
+
+          <div class="shop-card gun-card" data-gun-id="7">
+            <div class="card-info">
+              <h3>Heavy RPG</h3>
+              <p>Most Expensive</p>
+            </div>
+            <button id="gun-btn-7" class="buy-btn">Buy (1000 Pts)</button>
           </div>
         </div>
 
