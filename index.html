@@ -6,7 +6,7 @@
   <title>Tactical Headshot Arcade</title>
   <link rel="stylesheet" href="style.css">
   
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -51,7 +51,7 @@
           <input type="password" id="auth-password" placeholder="Password" class="auth-input">
           <div class="auth-btns">
             <button id="login-tab-submit" class="glow-btn">LOG IN</button>
-            <button id="register-tab-submit" class="glow-btn alt">REGISTER</button>
+            <button id="register-tab-submit" class="glow-btn alt hidden">REGISTER</button>
           </div>
           <button id="toggle-auth-mode" class="text-btn">Need an account? Register here</button>
           <p id="auth-error" class="auth-error-text"></p>
@@ -206,8 +206,9 @@
             <div class="pfp-preview-container">
               <img id="settings-pfp-preview" src="images/default-avatar.png" alt="Avatar">
             </div>
-            <label class="input-label">Profile Picture Image URL:</label>
-            <input type="text" id="settings-pfp-input" placeholder="Paste image URL here..." class="auth-input">
+            
+            <label class="input-label">Upload Profile Picture (Camera Roll):</label>
+            <input type="file" id="settings-pfp-file" accept="image/*" class="auth-input file-input">
             
             <label class="input-label">Change Username:</label>
             <input type="text" id="settings-username-input" placeholder="New Username" class="auth-input">
