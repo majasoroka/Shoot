@@ -266,7 +266,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Bulletproof Non-Freezing Delete Account Feature
+  // Instant Non-Freezing Delete Account Feature
   if (deleteAccountBtn) {
     deleteAccountBtn.addEventListener('click', async () => {
       if (!confirm("Are you sure you want to delete your account?")) return;
@@ -276,11 +276,10 @@ window.addEventListener('DOMContentLoaded', () => {
         const user = auth.currentUser;
         
         if (user) {
-          // Delete Firestore document first
           await db.collection("users").doc(user.uid).delete().catch(err => console.log(err));
-          // Try deleting auth account directly
+          // Clean up leaderboard entry as well
+          await db.collection("leaderboard").doc(user.uid).delete().catch(err => console.log(err));
           await user.delete().catch(async () => {
-            // If Firebase blocks direct deletion due to session security rules, sign out cleanly instead
             await auth.signOut();
           });
         }
@@ -348,15 +347,22 @@ window.addEventListener('DOMContentLoaded', () => {
     accountMsg.innerText = "";
   }
 
+  // Save Account Changes (Username, PFP, Password)
   saveAccountBtn.addEventListener('click', async () => {
     if (!currentUserData) return;
+    const newUsername = settingsUsernameInput.value.trim();
     const newPassword = settingsPasswordInput.value.trim();
+
+    if (!newUsername) {
+      accountMsg.innerText = "Username cannot be empty.";
+      return;
+    }
 
     try {
       accountMsg.innerText = "Saving changes...";
       const userRef = db.collection("users").doc(currentUserData.uid);
 
-      let updateData = {};
+      let updateData = { username: newUsername };
       if (selectedNewPfpBase64) {
         updateData.pfp = selectedNewPfpBase64;
         currentUserData.pfp = selectedNewPfpBase64;
@@ -364,6 +370,15 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       await userRef.set(updateData, { merge: true });
+      currentUserData.username = newUsername;
+      playerNameDisplay.innerText = newUsername;
+
+      // Also update username on existing leaderboard entry if present
+      const lbRef = db.collection("leaderboard").doc(currentUserData.uid);
+      const lbDoc = await lbRef.get();
+      if (lbDoc.exists) {
+        await lbRef.set({ username: newUsername, pfp: currentUserData.pfp }, { merge: true });
+      }
 
       if (newPassword) {
         const user = auth.currentUser;
@@ -458,15 +473,36 @@ window.addEventListener('DOMContentLoaded', () => {
   updateUI();
 });
 
-function saveScoreToLeaderboard(score) {
+// Save Score: Ensures each user has only ONE entry and only updates if score is higher
+async function saveScoreToLeaderboard(score) {
   if (!currentUserData) return;
-  db.collection("leaderboard").add({
-    uid: currentUserData.uid,
-    username: currentUserData.username,
-    pfp: currentUserData.pfp || "images/default-avatar.png",
-    score: score,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(error => console.error("Error saving score:", error));
+  const userScoreRef = db.collection("leaderboard").doc(currentUserData.uid);
+
+  try {
+    const doc = await userScoreRef.get();
+    if (doc.exists) {
+      const currentHighest = doc.data().score || 0;
+      if (score > currentHighest) {
+        await userScoreRef.set({
+          uid: currentUserData.uid,
+          username: currentUserData.username,
+          pfp: currentUserData.pfp || "images/default-avatar.png",
+          score: score,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    } else {
+      await userScoreRef.set({
+        uid: currentUserData.uid,
+        username: currentUserData.username,
+        pfp: currentUserData.pfp || "images/default-avatar.png",
+        score: score,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.error("Error saving score:", error);
+  }
 }
 
 function fetchLeaderboard() {
