@@ -36,7 +36,7 @@
     <main id="game-area">
       <div id="muzzle-flash" class="flash-effect"></div>
       
-      <!-- Dynamic Weapon Graphic (Flush to bottom edge) -->
+      <!-- Dynamic Weapon Graphic -->
       <div id="weapon-gun" class="weapon-graphic">
         <img id="current-gun-img" src="guns/gun1.png" alt="Weapon">
       </div>
@@ -44,34 +44,41 @@
       <!-- Auth / Login Screen Overlay -->
       <div id="auth-screen" class="overlay">
         <h2>TACTICAL HEADSHOT RANGE</h2>
-        <p class="sub-hint">Sign in or create an account to save scores to the global leaderboard!</p>
+        <p class="sub-hint">Sign in with your username/email or register with a valid email!</p>
         <div class="auth-form">
-          <input type="text" id="auth-username" placeholder="Username (e.g. Mya)" class="auth-input">
+          <input type="text" id="auth-login-input" placeholder="Username or Email" class="auth-input">
+          <input type="email" id="auth-email-input" placeholder="Valid Email (for Register only)" class="auth-input hidden">
           <input type="password" id="auth-password" placeholder="Password" class="auth-input">
           <div class="auth-btns">
-            <button id="login-btn" class="glow-btn">LOG IN</button>
-            <button id="register-btn" class="glow-btn alt">REGISTER</button>
+            <button id="login-tab-submit" class="glow-btn">LOG IN</button>
+            <button id="register-tab-submit" class="glow-btn alt">REGISTER</button>
           </div>
+          <button id="toggle-auth-mode" class="text-btn">Need an account? Register here</button>
           <p id="auth-error" class="auth-error-text"></p>
         </div>
       </div>
 
       <!-- Start Screen Overlay (Shown after login) -->
       <div id="start-screen" class="overlay hidden">
-        <h2>READY, <span id="player-name-display">SOLDIER</span>?</h2>
+        <div class="user-profile-badge">
+          <img id="hud-user-pfp" src="images/default-avatar.png" alt="PFP">
+          <span id="player-name-display">SOLDIER</span>
+        </div>
+        <h2>READY FOR DEPLOYMENT?</h2>
         <p class="sub-hint">FUCK ISRAEL • FUCK TRUMP • FUCK RUSSIA • الحرية لفلسطين • СЛАВА УКРАЇНІ</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
       </div>
 
-      <!-- Upgrades, Gun Shop & Leaderboard Modal Overlay -->
+      <!-- Armory & Intel Modal Overlay -->
       <div id="shop-modal" class="overlay hidden">
         <h2>ARMORY & INTEL</h2>
         <p class="pause-notice">⏸️ GAME PAUSED</p>
         
         <div class="shop-tabs">
           <button id="tab-upgrades-btn" class="tab-btn active">⚡ Upgrades</button>
-          <button id="tab-guns-btn" class="tab-btn">🔫 Gun Shop</button>
+          <button id="tab-guns-btn" class="tab-btn">🔫 Guns</button>
           <button id="tab-leaderboard-btn" class="tab-btn">🏆 Leaderboard</button>
+          <button id="tab-account-btn" class="tab-btn">⚙️ Account</button>
         </div>
 
         <!-- Upgrades Tab View -->
@@ -190,6 +197,27 @@
           <ul id="leaderboard-list">
             <li>Loading global scores...</li>
           </ul>
+        </div>
+
+        <!-- Account Settings Tab View -->
+        <div id="section-account" class="shop-grid hidden">
+          <div class="account-settings-box">
+            <h3>👤 Profile & Security</h3>
+            <div class="pfp-preview-container">
+              <img id="settings-pfp-preview" src="images/default-avatar.png" alt="Avatar">
+            </div>
+            <label class="input-label">Profile Picture Image URL:</label>
+            <input type="text" id="settings-pfp-input" placeholder="Paste image URL here..." class="auth-input">
+            
+            <label class="input-label">Change Username:</label>
+            <input type="text" id="settings-username-input" placeholder="New Username" class="auth-input">
+
+            <label class="input-label">Change Password:</label>
+            <input type="password" id="settings-password-input" placeholder="New Password" class="auth-input">
+
+            <button id="save-account-btn" class="glow-btn">SAVE CHANGES</button>
+            <p id="account-msg" class="auth-error-text" style="color: #00ffcc;"></p>
+          </div>
         </div>
 
         <button id="close-shop-btn" class="glow-btn large">RESUME GAME</button>
