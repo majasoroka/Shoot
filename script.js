@@ -86,6 +86,7 @@ const startScreen = document.getElementById('start-screen');
 const shopModal = document.getElementById('shop-modal');
 const gameOverScreen = document.getElementById('game-over-screen');
 const finalScoreDisplay = document.getElementById('final-score');
+const personalBestDisplay = document.getElementById('personal-best');
 
 // Shop Buttons
 const buyMultiplierBtn = document.getElementById('buy-multiplier');
@@ -93,6 +94,11 @@ const buyTimeBtn = document.getElementById('buy-time');
 const buyShieldBtn = document.getElementById('buy-shield');
 const buyCritBtn = document.getElementById('buy-crit');
 const buyBgBtn = document.getElementById('buy-bg');
+
+// Show warning popup exact text on first load
+window.addEventListener('DOMContentLoaded', () => {
+  alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
+});
 
 // Event Listeners
 if (startBtn) startBtn.addEventListener('click', startGame);
@@ -114,7 +120,7 @@ if (gameArea) {
   });
 }
 
-// Shop Upgrades (Silent purchases - no gunshot sound on buying)
+// Shop Upgrades
 if (buyMultiplierBtn) {
   buyMultiplierBtn.addEventListener('click', () => {
     if (points >= costs.multiplier) {
@@ -241,7 +247,6 @@ function startGame() {
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
 
-  // Reset background if not unlocked
   if (gameArea) {
     if (customBgUnlocked) {
       gameArea.style.backgroundImage = "url('background.jpg')";
@@ -538,7 +543,15 @@ function endGame() {
   if (moveInterval) clearInterval(moveInterval);
   clearEntities();
 
+  // Save/Check personal high score using LocalStorage
+  let personalBest = localStorage.getItem('tactical_high_score') || 0;
+  if (points > personalBest) {
+    personalBest = points;
+    localStorage.setItem('tactical_high_score', personalBest);
+  }
+
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
+  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
 
