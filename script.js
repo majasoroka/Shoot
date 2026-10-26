@@ -93,7 +93,7 @@ let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
 let authScreen, authLoginInput, authEmailInput, authPasswordInput, loginTabSubmit, registerTabSubmit, toggleAuthModeBtn, authError;
 let startScreen, playerNameDisplay, hudUserPfp, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
 let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount, leaderboardList;
-let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, accountMsg;
+let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, logoutBtn, accountMsg;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -145,6 +145,7 @@ window.addEventListener('DOMContentLoaded', () => {
   settingsUsernameInput = document.getElementById('settings-username-input');
   settingsPasswordInput = document.getElementById('settings-password-input');
   saveAccountBtn = document.getElementById('save-account-btn');
+  logoutBtn = document.getElementById('logout-btn');
   accountMsg = document.getElementById('account-msg');
 
   buyMultiplierBtn = document.getElementById('buy-multiplier');
@@ -152,6 +153,31 @@ window.addEventListener('DOMContentLoaded', () => {
   buyShieldBtn = document.getElementById('buy-shield');
   buyCritBtn = document.getElementById('buy-crit');
   buyBgBtn = document.getElementById('buy-bg');
+
+  // Listen for Firebase session persistence (keeps user logged in across page reloads)
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      const uid = user.uid;
+      let username = user.email.split('@')[0];
+      let pfp = "images/default-avatar.png";
+
+      try {
+        const userDoc = await db.collection("users").doc(uid).get();
+        if (userDoc.exists) {
+          username = userDoc.data().username || username;
+          pfp = userDoc.data().pfp || pfp;
+        }
+      } catch (err) {
+        console.log("Firestore profile load warning:", err);
+      }
+
+      currentUserData = { uid, username, email: user.email, pfp };
+      transitionToGame();
+    } else {
+      authScreen.classList.remove('hidden');
+      startScreen.classList.add('hidden');
+    }
+  });
 
   toggleAuthModeBtn.addEventListener('click', () => {
     isRegisterMode = !isRegisterMode;
@@ -163,7 +189,7 @@ window.addEventListener('DOMContentLoaded', () => {
       toggleAuthModeBtn.innerText = "Already have an account? Log in here";
     } else {
       authEmailInput.classList.add('hidden');
-      authLoginInput.placeholder = "Enter your Email Address";
+      authLoginInput.placeholder = "Username or Email";
       loginTabSubmit.classList.remove('hidden');
       registerTabSubmit.classList.add('hidden');
       toggleAuthModeBtn.innerText = "Need an account? Register here";
@@ -186,12 +212,11 @@ window.addEventListener('DOMContentLoaded', () => {
       const uid = userCred.user.uid;
       const defaultPfp = "images/default-avatar.png";
 
-      // Try saving user profile to Firestore (non-blocking if rules fail)
-      db.collection("users").doc(uid).set({
+      await db.collection("users").doc(uid).set({
         username: username,
         email: email,
         pfp: defaultPfp
-      }).catch(err => console.log("Firestore profile sync warning:", err));
+      }, { merge: true });
 
       currentUserData = { uid, username, email, pfp: defaultPfp };
       transitionToGame();
@@ -200,44 +225,57 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Log in with either Email or Username
   loginTabSubmit.addEventListener('click', async () => {
-    const emailInput = authLoginInput.value.trim();
+    const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
 
-    if (!emailInput || !password) {
-      authError.innerText = "Please enter email and password.";
+    if (!loginInput || !password) {
+      authError.innerText = "Please enter login and password.";
       return;
     }
 
     try {
-      const userCred = await auth.signInWithEmailAndPassword(emailInput, password);
-      const uid = userCred.user.uid;
-      
-      let username = emailInput.split('@')[0];
-      let pfp = "images/default-avatar.png";
+      let emailToUse = loginInput;
 
-      try {
-        const userDoc = await db.collection("users").doc(uid).get();
-        if (userDoc.exists) {
-          username = userDoc.data().username || username;
-          pfp = userDoc.data().pfp || pfp;
+      // If they typed a username instead of an email, look up their email in Firestore
+      if (!loginInput.includes('@')) {
+        const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
+        if (querySnapshot.empty) {
+          authError.innerText = "Username not found.";
+          return;
         }
-      } catch (err) {
-        console.log("Firestore fetch warning:", err);
+        emailToUse = querySnapshot.docs[0].data().email;
       }
 
-      currentUserData = { uid, username, email: emailInput, pfp };
-      transitionToGame();
+      await auth.signInWithEmailAndPassword(emailToUse, password);
     } catch (error) {
       authError.innerText = error.message;
+    }
+  });
+
+  // Log Out button in Account settings
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      await auth.signOut();
+      currentUserData = null;
+      shopModal.classList.add('hidden');
+      startScreen.classList.add('hidden');
+      authScreen.classList.remove('hidden');
+      authLoginInput.value = "";
+      authPasswordInput.value = "";
+    } catch (error) {
+      console.error("Logout error:", error);
     }
   });
 
   function transitionToGame() {
     authScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
-    playerNameDisplay.innerText = currentUserData.username;
-    hudUserPfp.src = currentUserData.pfp || "images/default-avatar.png";
+    if (currentUserData) {
+      playerNameDisplay.innerText = currentUserData.username;
+      hudUserPfp.src = currentUserData.pfp || "images/default-avatar.png";
+    }
   }
 
   const tabs = [tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn];
@@ -301,7 +339,7 @@ window.addEventListener('DOMContentLoaded', () => {
         playerNameDisplay.innerText = newUsername;
       }
 
-      userRef.set(updateData, { merge: true }).catch(err => console.log(err));
+      await userRef.set(updateData, { merge: true });
 
       if (newPassword) {
         await auth.currentUser.updatePassword(newPassword);
@@ -826,7 +864,7 @@ function hitBomb(bomb, clientX, clientY) {
   combo = 0;
 
   if (hasShield) {
-    hasShield =false;
+    hasShield = false;
     updateUI();
     showPopup(clientX, clientY, 'SHIELD BLOCKED!', 'shield');
     return;
@@ -887,6 +925,6 @@ function endGame(titleText = "ROUND COMPLETE") {
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
-  if (personalBestDisplay) finalScoreDisplay.innerText = personalBest;
+  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
