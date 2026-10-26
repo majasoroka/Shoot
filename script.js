@@ -31,7 +31,7 @@ const headImages = [
   'images/head10.png'  // 9: Moaz
 ];
 
-const penaltyHead = 'images/head11.png'; // Instant game-over penalty target
+const penaltyHead = 'images/head11.png';
 const flagImages = ['images/flag1.png', 'images/flag2.png'];
 
 const gunsData = [
@@ -153,19 +153,17 @@ window.addEventListener('DOMContentLoaded', () => {
   buyCritBtn = document.getElementById('buy-crit');
   buyBgBtn = document.getElementById('buy-bg');
 
-  alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
-
   toggleAuthModeBtn.addEventListener('click', () => {
     isRegisterMode = !isRegisterMode;
     if (isRegisterMode) {
       authEmailInput.classList.remove('hidden');
-      authLoginInput.placeholder = "Username (e.g. Maja27492)";
+      authLoginInput.placeholder = "Username (e.g. Maja)";
       registerTabSubmit.classList.remove('hidden');
       loginTabSubmit.classList.add('hidden');
       toggleAuthModeBtn.innerText = "Already have an account? Log in here";
     } else {
       authEmailInput.classList.add('hidden');
-      authLoginInput.placeholder = "Username or Email";
+      authLoginInput.placeholder = "Enter your Email Address";
       loginTabSubmit.classList.remove('hidden');
       registerTabSubmit.classList.add('hidden');
       toggleAuthModeBtn.innerText = "Need an account? Register here";
@@ -188,11 +186,12 @@ window.addEventListener('DOMContentLoaded', () => {
       const uid = userCred.user.uid;
       const defaultPfp = "images/default-avatar.png";
 
-      await db.collection("users").doc(uid).set({
+      // Try saving user profile to Firestore (non-blocking if rules fail)
+      db.collection("users").doc(uid).set({
         username: username,
         email: email,
         pfp: defaultPfp
-      });
+      }).catch(err => console.log("Firestore profile sync warning:", err));
 
       currentUserData = { uid, username, email, pfp: defaultPfp };
       transitionToGame();
@@ -202,34 +201,32 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   loginTabSubmit.addEventListener('click', async () => {
-    const loginInput = authLoginInput.value.trim();
+    const emailInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
 
-    if (!loginInput || !password) {
-      authError.innerText = "Please enter login and password.";
+    if (!emailInput || !password) {
+      authError.innerText = "Please enter email and password.";
       return;
     }
 
     try {
-      let emailToUse = loginInput;
-      if (!loginInput.includes('@')) {
-        const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
-        if (querySnapshot.empty) {
-          authError.innerText = "Username not found.";
-          return;
-        }
-        emailToUse = querySnapshot.docs[0].data().email;
-      }
-
-      const userCred = await auth.signInWithEmailAndPassword(emailToUse, password);
+      const userCred = await auth.signInWithEmailAndPassword(emailInput, password);
       const uid = userCred.user.uid;
-      const userDoc = await db.collection("users").doc(uid).get();
+      
+      let username = emailInput.split('@')[0];
+      let pfp = "images/default-avatar.png";
 
-      if (userDoc.exists) {
-        currentUserData = { uid, ...userDoc.data() };
-      } else {
-        currentUserData = { uid, username: loginInput, email: emailToUse, pfp: "images/default-avatar.png" };
+      try {
+        const userDoc = await db.collection("users").doc(uid).get();
+        if (userDoc.exists) {
+          username = userDoc.data().username || username;
+          pfp = userDoc.data().pfp || pfp;
+        }
+      } catch (err) {
+        console.log("Firestore fetch warning:", err);
       }
+
+      currentUserData = { uid, username, email: emailInput, pfp };
       transitionToGame();
     } catch (error) {
       authError.innerText = error.message;
@@ -304,9 +301,7 @@ window.addEventListener('DOMContentLoaded', () => {
         playerNameDisplay.innerText = newUsername;
       }
 
-      if (Object.keys(updateData).length > 0) {
-        await userRef.update(updateData);
-      }
+      userRef.set(updateData, { merge: true }).catch(err => console.log(err));
 
       if (newPassword) {
         await auth.currentUser.updatePassword(newPassword);
@@ -831,7 +826,7 @@ function hitBomb(bomb, clientX, clientY) {
   combo = 0;
 
   if (hasShield) {
-    hasShield = false;
+    hasShield =false;
     updateUI();
     showPopup(clientX, clientY, 'SHIELD BLOCKED!', 'shield');
     return;
@@ -892,6 +887,6 @@ function endGame(titleText = "ROUND COMPLETE") {
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
-  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
+  if (personalBestDisplay) finalScoreDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
