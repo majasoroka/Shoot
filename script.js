@@ -95,7 +95,7 @@ const buyShieldBtn = document.getElementById('buy-shield');
 const buyCritBtn = document.getElementById('buy-crit');
 const buyBgBtn = document.getElementById('buy-bg');
 
-// Show warning popup exact text on first load
+// Show warning popup on first load
 window.addEventListener('DOMContentLoaded', () => {
   alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
 });
@@ -181,6 +181,8 @@ if (buyBgBtn) {
         gameArea.style.backgroundImage = "url('background.jpg')";
       }
       updateUI();
+      // Trigger warning alert when background upgrade is bought
+      alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
     }
   });
 }
@@ -543,7 +545,6 @@ function endGame() {
   if (moveInterval) clearInterval(moveInterval);
   clearEntities();
 
-  // Save/Check personal high score using LocalStorage
   let personalBest = localStorage.getItem('tactical_high_score') || 0;
   if (points > personalBest) {
     personalBest = points;
