@@ -11,6 +11,8 @@ const headImages = [
   'images/head10.png'  // 9: Moaz
 ];
 
+const penaltyHead = 'images/head11.png'; // Instant game-over penalty target
+
 const flagImages = [
   'images/flag1.png', // 0: Israel Flag
   'images/flag2.png'  // 1: Russia Flag
@@ -50,7 +52,7 @@ function playCustomAudio(audioObj) {
   audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
 }
 
-// Tracking shots for each target (Expanded to 10 heads)
+// Tracking shots for each target
 let hitCounts = {
   head: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   flag: [0, 0]
@@ -88,7 +90,7 @@ let costs = { ...initialCosts };
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
 let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
-let startScreen, shopModal, gameOverScreen, finalScoreDisplay, personalBestDisplay;
+let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
@@ -112,6 +114,7 @@ window.addEventListener('DOMContentLoaded', () => {
   startScreen = document.getElementById('start-screen');
   shopModal = document.getElementById('shop-modal');
   gameOverScreen = document.getElementById('game-over-screen');
+  gameOverTitle = document.getElementById('game-over-title');
   finalScoreDisplay = document.getElementById('final-score');
   personalBestDisplay = document.getElementById('personal-best');
 
@@ -330,7 +333,7 @@ function resumeTimers() {
   gameTimer = setInterval(() => {
     remainingTime--;
     if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
-    if (remainingTime <= 0) endGame();
+    if (remainingTime <= 0) endGame("ROUND COMPLETE");
   }, 1000);
 
   spawnInterval = setInterval(() => spawnEntity(), 750);
@@ -442,8 +445,9 @@ function spawnEntity(forceBombCheck = true) {
   if (gameArea.querySelectorAll('.target-head:not(.shot), .target-flag:not(.shot), .target-bomb').length >= 6) return;
 
   const randRoll = Math.random();
-  const isBomb = forceBombCheck && randRoll < 0.20;
-  const isFlag = !isBomb && randRoll < 0.35;
+  const isBomb = forceBombCheck && randRoll < 0.18;
+  const isPenalty = !isBomb && randRoll < 0.28; // Chance for head11 penalty target
+  const isFlag = !isBomb && !isPenalty && randRoll < 0.42;
 
   if (isBomb) {
     const bomb = document.createElement('div');
@@ -465,6 +469,37 @@ function spawnEntity(forceBombCheck = true) {
 
     setTimeout(() => {
       if (bomb.parentNode && !isPaused) bomb.remove();
+    }, headLingerTime);
+
+  } else if (isPenalty) {
+    const target = document.createElement('img');
+    target.src = penaltyHead;
+    target.classList.add('target-head', 'penalty-target');
+
+    target.style.width = `${targetSize}px`;
+    target.style.height = `${targetSize}px`;
+
+    const maxX = gameArea.clientWidth - targetSize - 20;
+    const maxY = gameArea.clientHeight - targetSize - 20;
+    let posX = Math.floor(Math.random() * maxX) + 10;
+    let posY = Math.floor(Math.random() * maxY) + 10;
+
+    target.style.left = `${posX}px`;
+    target.style.top = `${posY}px`;
+    target.dataset.vx = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.2);
+
+    target.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (target.classList.contains('shot') || isPaused) return;
+      hitPenaltyHead(target, e.clientX, e.clientY);
+    });
+
+    gameArea.appendChild(target);
+
+    setTimeout(() => {
+      if (target.parentNode && !target.classList.contains('shot') && !isPaused) {
+        target.remove();
+      }
     }, headLingerTime);
 
   } else if (isFlag) {
@@ -587,6 +622,27 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   }, 350);
 }
 
+function hitPenaltyHead(target, clientX, clientY) {
+  target.classList.add('shot');
+  combo = 0;
+  playCustomAudio(bombSound);
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+  triggerGunshotFX(clientX, clientY);
+
+  gameArea.classList.remove('danger-flash');
+  void gameArea.offsetWidth;
+  gameArea.classList.add('danger-flash');
+
+  const rect = gameArea.getBoundingClientRect();
+  spawnBloodSplatter(clientX - rect.left, clientY - rect.top, true);
+
+  setTimeout(() => {
+    if (target.parentNode) target.remove();
+    endGame("GAME OVER BITCH, DON’T SHOOT ME");
+  }, 200);
+}
+
 function hitFlag(flag, clientX, clientY, flagIndex) {
   flag.classList.add('shot');
   combo++;
@@ -659,7 +715,7 @@ function clearEntities() {
   entities.forEach(e => e.remove());
 }
 
-function endGame() {
+function endGame(titleText = "ROUND COMPLETE") {
   isGameActive = false;
   isPaused = false;
   clearInterval(gameTimer);
@@ -673,6 +729,7 @@ function endGame() {
     localStorage.setItem('tactical_high_score', personalBest);
   }
 
+  if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
   if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
