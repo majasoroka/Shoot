@@ -461,7 +461,7 @@ body {
   border: 1px solid #00ffcc;
 }
 
-/* Account Settings Panel */
+/* Account Settings Panel & Camera Roll File Input */
 .account-settings-box {
   display: flex;
   flex-direction: column;
@@ -487,6 +487,25 @@ body {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #00ffcc;
+}
+
+.file-input {
+  padding: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background: #131c27;
+  color: #8a99ad;
+}
+
+.file-input::-webkit-file-upload-button {
+  background: linear-gradient(135deg, #00ffcc, #00b38f);
+  color: #08090c;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-right: 8px;
 }
 
 .text-btn {
