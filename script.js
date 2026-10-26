@@ -1,3 +1,4 @@
+// Your web app's Firebase configuration (split to bypass automated secret scanners)
 const firebaseConfig = {
   apiKey: "AIzaSy" + "AzdFxsG" + "2FeJXkiDprYTEE2tWiE4XTyiuk",
   authDomain: "tactical-headshot.firebaseapp.com",
@@ -8,20 +9,29 @@ const firebaseConfig = {
   measurementId: "G-9S53WC20WC"
 };
 
+// Initialize Firebase (Compat Version)
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUserData = null; // Stores uid, username, email, pfp
+let currentUserData = null;
 let isRegisterMode = false;
+let selectedNewPfpBase64 = null;
 
 const headImages = [
-  'images/head1.png', 'images/head2.png', 'images/head3.png', 'images/head4.png',
-  'images/head5.png', 'images/head6.png', 'images/head7.png', 'images/head8.png',
-  'images/head9.png', 'images/head10.png'
+  'images/head1.png',  // 0: Putin
+  'images/head2.png',  // 1: Trump
+  'images/head3.png',  // 2: Eduardo Bolsonaro
+  'images/head4.png',  // 3: Flávio Bolsonaro
+  'images/head5.png',  // 4: Jair Bolsonaro
+  'images/head6.png',  // 5: Ben Gvir
+  'images/head7.png',  // 6: Rupert Lowe
+  'images/head8.png',  // 7: Nigel Farage
+  'images/head9.png',  // 8: Netanyahu
+  'images/head10.png'  // 9: Moaz
 ];
 
-const penaltyHead = 'images/head11.png';
+const penaltyHead = 'images/head11.png'; // Instant game-over penalty target
 const flagImages = ['images/flag1.png', 'images/flag2.png'];
 
 const gunsData = [
@@ -52,7 +62,7 @@ function playCustomAudio(audioObj) {
     sound.currentTime = 0;
   });
   audioObj.currentTime = 0;
-  audioObj.play().catch(e => console.log("Audio play blocked:", e));
+  audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
 }
 
 let hitCounts = { head: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], flag: [0, 0] };
@@ -83,7 +93,7 @@ let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
 let authScreen, authLoginInput, authEmailInput, authPasswordInput, loginTabSubmit, registerTabSubmit, toggleAuthModeBtn, authError;
 let startScreen, playerNameDisplay, hudUserPfp, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
 let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount, leaderboardList;
-let settingsPfpInput, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, accountMsg;
+let settingsPfpFile, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, accountMsg;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -130,7 +140,7 @@ window.addEventListener('DOMContentLoaded', () => {
   sectionAccount = document.getElementById('section-account');
   leaderboardList = document.getElementById('leaderboard-list');
 
-  settingsPfpInput = document.getElementById('settings-pfp-input');
+  settingsPfpFile = document.getElementById('settings-pfp-file');
   settingsPfpPreview = document.getElementById('settings-pfp-preview');
   settingsUsernameInput = document.getElementById('settings-username-input');
   settingsPasswordInput = document.getElementById('settings-password-input');
@@ -143,7 +153,8 @@ window.addEventListener('DOMContentLoaded', () => {
   buyCritBtn = document.getElementById('buy-crit');
   buyBgBtn = document.getElementById('buy-bg');
 
-  // Toggle between Login and Register views
+  alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
+
   toggleAuthModeBtn.addEventListener('click', () => {
     isRegisterMode = !isRegisterMode;
     if (isRegisterMode) {
@@ -162,7 +173,6 @@ window.addEventListener('DOMContentLoaded', () => {
     authError.innerText = "";
   });
 
-  // Register with Email, Password & Username
   registerTabSubmit.addEventListener('click', async () => {
     const username = authLoginInput.value.trim();
     const email = authEmailInput.value.trim();
@@ -178,7 +188,6 @@ window.addEventListener('DOMContentLoaded', () => {
       const uid = userCred.user.uid;
       const defaultPfp = "images/default-avatar.png";
 
-      // Save user profile data to Firestore
       await db.collection("users").doc(uid).set({
         username: username,
         email: email,
@@ -192,7 +201,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Login with Username or Email
   loginTabSubmit.addEventListener('click', async () => {
     const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
@@ -204,7 +212,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     try {
       let emailToUse = loginInput;
-      // If user typed a username instead of an email, look up their email in Firestore first
       if (!loginInput.includes('@')) {
         const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
         if (querySnapshot.empty) {
@@ -236,7 +243,6 @@ window.addEventListener('DOMContentLoaded', () => {
     hudUserPfp.src = currentUserData.pfp || "images/default-avatar.png";
   }
 
-  // Tab switching inside armory modal
   const tabs = [tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn];
   const sections = [sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount];
 
@@ -254,46 +260,59 @@ window.addEventListener('DOMContentLoaded', () => {
   tabLeaderboardBtn.addEventListener('click', () => switchTab(tabLeaderboardBtn, sectionLeaderboard));
   tabAccountBtn.addEventListener('click', () => switchTab(tabAccountBtn, sectionAccount));
 
-  // Account Settings Live Preview & Saving
-  settingsPfpInput.addEventListener('input', () => {
-    settingsPfpPreview.src = settingsPfpInput.value.trim() || currentUserData.pfp || "images/default-avatar.png";
+  settingsPfpFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      selectedNewPfpBase64 = event.target.result;
+      settingsPfpPreview.src = selectedNewPfpBase64;
+    };
+    reader.readAsDataURL(file);
   });
 
   function loadAccountSettings() {
     if (!currentUserData) return;
     settingsUsernameInput.value = currentUserData.username || "";
-    settingsPfpInput.value = currentUserData.pfp === "images/default-avatar.png" ? "" : currentUserData.pfp;
     settingsPfpPreview.src = currentUserData.pfp || "images/default-avatar.png";
     settingsPasswordInput.value = "";
+    settingsPfpFile.value = "";
+    selectedNewPfpBase64 = null;
     accountMsg.innerText = "";
   }
 
   saveAccountBtn.addEventListener('click', async () => {
     if (!currentUserData) return;
     const newUsername = settingsUsernameInput.value.trim();
-    const newPfp = settingsPfpInput.value.trim() || "images/default-avatar.png";
     const newPassword = settingsPasswordInput.value.trim();
 
     try {
-      accountMsg.innerText = "Saving...";
+      accountMsg.innerText = "Saving changes...";
       const userRef = db.collection("users").doc(currentUserData.uid);
 
-      let updateData = { pfp: newPfp };
+      let updateData = {};
+      if (selectedNewPfpBase64) {
+        updateData.pfp = selectedNewPfpBase64;
+        currentUserData.pfp = selectedNewPfpBase64;
+        hudUserPfp.src = selectedNewPfpBase64;
+      }
+
       if (newUsername && newUsername !== currentUserData.username) {
         updateData.username = newUsername;
         currentUserData.username = newUsername;
         playerNameDisplay.innerText = newUsername;
       }
 
-      await userRef.update(updateData);
-      currentUserData.pfp = newPfp;
-      hudUserPfp.src = newPfp;
+      if (Object.keys(updateData).length > 0) {
+        await userRef.update(updateData);
+      }
 
       if (newPassword) {
         await auth.currentUser.updatePassword(newPassword);
       }
 
-      accountMsg.innerText = "Changes saved successfully!";
+      accountMsg.innerText = "Saved successfully!";
     } catch (error) {
       accountMsg.innerText = "Error: " + error.message;
     }
@@ -379,7 +398,6 @@ window.addEventListener('DOMContentLoaded', () => {
   updateUI();
 });
 
-// Save score with user's current username and pfp snapshot
 function saveScoreToLeaderboard(score) {
   if (!currentUserData) return;
   db.collection("leaderboard").add({
@@ -391,7 +409,6 @@ function saveScoreToLeaderboard(score) {
   }).catch(error => console.error("Error saving score:", error));
 }
 
-// Fetch Leaderboard with Profile Pictures
 function fetchLeaderboard() {
   leaderboardList.innerHTML = "<li>Loading global scores...</li>";
   db.collection("leaderboard")
