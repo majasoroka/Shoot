@@ -388,7 +388,7 @@ function spawnBloodSplatter(x, y, isBomb) {
 
 function spawnEntity(forceBombCheck = true) {
   if (!isGameActive || isPaused || !gameArea) return;
-  if (gameArea.querySelectorAll('.target-head:not(.shot), .target-flag:not(.shot), .target-bomb').length >= 6) return;
+  // Removed target limit cap so targets spawn unlimited and continuously
 
   const randRoll = Math.random();
   const isBomb = forceBombCheck && randRoll < 0.18;
