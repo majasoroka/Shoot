@@ -557,3 +557,79 @@ body {
   color: #00ffcc;
   font-weight: bold;
 }
+/* User Profile Badge on Start Screen */
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #131c27;
+  border: 1px solid #00ffcc;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 5px;
+}
+
+#hud-user-pfp {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #00ffcc;
+}
+
+/* Leaderboard PFP styling */
+#leaderboard-list li {
+  align-items: center;
+}
+
+.lb-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lb-pfp {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #00ffcc;
+}
+
+/* Account Settings Panel */
+.account-settings-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
+.input-label {
+  font-size: 0.7rem;
+  color: #8a99ad;
+}
+
+.pfp-preview-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+#settings-pfp-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #00ffcc;
+}
+
+.text-btn {
+  background: transparent;
+  border: none;
+  color: #00ffcc;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 5px;
+}
