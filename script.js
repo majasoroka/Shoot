@@ -69,7 +69,7 @@ let costs = { ...initialCosts };
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
-let mainStartBtn, lobbyShopBtn, restartBtn, shopToggleBtn, closeShopBtn;
+let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
 let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
@@ -85,7 +85,6 @@ window.addEventListener('DOMContentLoaded', () => {
   currentGunImg = document.getElementById('current-gun-img');
 
   mainStartBtn = document.getElementById('main-start-btn');
-  lobbyShopBtn = document.getElementById('lobby-shop-btn');
   restartBtn = document.getElementById('restart-btn');
   shopToggleBtn = document.getElementById('shop-toggle-btn');
   closeShopBtn = document.getElementById('close-shop-btn');
@@ -126,7 +125,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if (restartBtn) restartBtn.addEventListener('click', startGame);
 
   if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
-  if (lobbyShopBtn) lobbyShopBtn.addEventListener('click', openShop);
   if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 
   for (let i = 0; i < 8; i++) {
@@ -587,7 +585,7 @@ function hitPenaltyHead(target, clientX, clientY) {
 
   setTimeout(() => {
     if (target.parentNode) target.remove();
-    endGame("GAME OVER BITCH, DON’ْت SHOOT ME");
+    endGame("GAME OVER BITCH, DON’T SHOOT ME");
   }, 200);
 }
 
