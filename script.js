@@ -15,6 +15,22 @@ const flagImages = [
   'images/flag2.png'  // 1: Russia Flag
 ];
 
+// 8 Guns Definition with Prices & File paths
+const gunsData = [
+  { name: "Standard Pistol", price: 0, file: "guns/gun1.png" },
+  { name: "Compact Sidearm", price: 60, file: "guns/gun2.png" },
+  { name: "Tactical Carbine", price: 120, file: "guns/gun3.png" },
+  { name: "Holographic SMG", price: 200, file: "guns/gun4.png" },
+  { name: "Heavy Assaulter", price: 320, file: "guns/gun5.png" },
+  { name: "Cyberpunk Rifle", price: 480, file: "guns/gun6.png" },
+  { name: "Advanced Marksman", price: 700, file: "guns/gun7.png" },
+  { name: "Heavy RPG", price: 1000, file: "guns/gun8.png" }
+];
+
+// Gun Inventory & State (Resets every round)
+let ownedGuns = [true, false, false, false, false, false, false, false];
+let currentEquippedGun = 0;
+
 // Load Custom Audio Files
 const gunshotSound = new Audio('audio/gunshot.mp3');
 const bombSound = new Audio('audio/bomb.mp3');
@@ -68,123 +84,202 @@ let costs = {
 };
 
 // DOM Elements
-const pointsDisplay = document.getElementById('points-display');
-const comboDisplay = document.getElementById('combo-display');
-const multiplierDisplay = document.getElementById('multiplier-display');
-const timeDisplay = document.getElementById('time-display');
-const gameArea = document.getElementById('game-area');
-const muzzleFlash = document.getElementById('muzzle-flash');
-const weaponGun = document.getElementById('weapon-gun');
+let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
+let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
+let startScreen, shopModal, gameOverScreen, finalScoreDisplay, personalBestDisplay;
+let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
+let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
-const startBtn = document.getElementById('start-btn');
-const mainStartBtn = document.getElementById('main-start-btn');
-const restartBtn = document.getElementById('restart-btn');
-const shopToggleBtn = document.getElementById('shop-toggle-btn');
-const closeShopBtn = document.getElementById('close-shop-btn');
-
-const startScreen = document.getElementById('start-screen');
-const shopModal = document.getElementById('shop-modal');
-const gameOverScreen = document.getElementById('game-over-screen');
-const finalScoreDisplay = document.getElementById('final-score');
-const personalBestDisplay = document.getElementById('personal-best');
-
-// Shop Buttons
-const buyMultiplierBtn = document.getElementById('buy-multiplier');
-const buyTimeBtn = document.getElementById('buy-time');
-const buyShieldBtn = document.getElementById('buy-shield');
-const buyCritBtn = document.getElementById('buy-crit');
-const buyBgBtn = document.getElementById('buy-bg');
-
-// Show warning popup on first load
+// Initialize when DOM is fully ready
 window.addEventListener('DOMContentLoaded', () => {
+  pointsDisplay = document.getElementById('points-display');
+  comboDisplay = document.getElementById('combo-display');
+  multiplierDisplay = document.getElementById('multiplier-display');
+  timeDisplay = document.getElementById('time-display');
+  gameArea = document.getElementById('game-area');
+  muzzleFlash = document.getElementById('muzzle-flash');
+  weaponGun = document.getElementById('weapon-gun');
+  currentGunImg = document.getElementById('current-gun-img');
+
+  startBtn = document.getElementById('start-btn');
+  mainStartBtn = document.getElementById('main-start-btn');
+  restartBtn = document.getElementById('restart-btn');
+  shopToggleBtn = document.getElementById('shop-toggle-btn');
+  closeShopBtn = document.getElementById('close-shop-btn');
+
+  startScreen = document.getElementById('start-screen');
+  shopModal = document.getElementById('shop-modal');
+  gameOverScreen = document.getElementById('game-over-screen');
+  finalScoreDisplay = document.getElementById('final-score');
+  personalBestDisplay = document.getElementById('personal-best');
+
+  tabUpgradesBtn = document.getElementById('tab-upgrades-btn');
+  tabGunsBtn = document.getElementById('tab-guns-btn');
+  sectionUpgrades = document.getElementById('section-upgrades');
+  sectionGuns = document.getElementById('section-guns');
+
+  buyMultiplierBtn = document.getElementById('buy-multiplier');
+  buyTimeBtn = document.getElementById('buy-time');
+  buyShieldBtn = document.getElementById('buy-shield');
+  buyCritBtn = document.getElementById('buy-crit');
+  buyBgBtn = document.getElementById('buy-bg');
+
+  // Show warning popup on first load
   alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
+
+  // Event Listeners
+  if (startBtn) startBtn.addEventListener('click', startGame);
+  if (mainStartBtn) mainStartBtn.addEventListener('click', startGame);
+  if (restartBtn) restartBtn.addEventListener('click', startGame);
+
+  if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
+  if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
+
+  // Tab switching
+  if (tabUpgradesBtn && tabGunsBtn) {
+    tabUpgradesBtn.addEventListener('click', () => {
+      tabUpgradesBtn.classList.add('active');
+      tabGunsBtn.classList.remove('active');
+      sectionUpgrades.classList.remove('hidden');
+      sectionGuns.classList.add('hidden');
+    });
+
+    tabGunsBtn.addEventListener('click', () => {
+      tabGunsBtn.classList.add('active');
+      tabUpgradesBtn.classList.remove('active');
+      sectionGuns.classList.remove('hidden');
+      sectionUpgrades.classList.add('hidden');
+    });
+  }
+
+  // Setup Gun Shop Interaction Buttons
+  for (let i = 0; i < 8; i++) {
+    const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        handleGunClick(i);
+      });
+    }
+  }
+
+  if (gameArea) {
+    gameArea.addEventListener('pointerdown', (e) => {
+      if (!isGameActive || isPaused) return;
+      triggerGunshotFX(e.clientX, e.clientY);
+      playCustomAudio(gunshotSound);
+      if (e.target === gameArea || e.target === muzzleFlash || e.target === weaponGun || e.target === currentGunImg) {
+        combo = 0;
+        updateUI();
+      }
+    });
+  }
+
+  // Shop Upgrades
+  if (buyMultiplierBtn) {
+    buyMultiplierBtn.addEventListener('click', () => {
+      if (points >= costs.multiplier) {
+        points -= costs.multiplier;
+        pointsMultiplier *= 2;
+        costs.multiplier = Math.floor(costs.multiplier * 2.5);
+        buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
+        updateUI();
+      }
+    });
+  }
+
+  if (buyTimeBtn) {
+    buyTimeBtn.addEventListener('click', () => {
+      if (points >= costs.time) {
+        points -= costs.time;
+        remainingTime += 10;
+        baseGameTime += 10;
+        costs.time = Math.floor(costs.time * 2);
+        buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
+        updateUI();
+      }
+    });
+  }
+
+  if (buyShieldBtn) {
+    buyShieldBtn.addEventListener('click', () => {
+      if (points >= costs.shield && !hasShield) {
+        points -= costs.shield;
+        hasShield = true;
+        buyShieldBtn.innerText = 'ACTIVE 🛡️';
+        buyShieldBtn.disabled = true;
+        updateUI();
+      }
+    });
+  }
+
+  if (buyCritBtn) {
+    buyCritBtn.addEventListener('click', () => {
+      if (points >= costs.crit && !hasCrit) {
+        points -= costs.crit;
+        hasCrit = true;
+        buyCritBtn.innerText = 'ACTIVE 💥';
+        buyCritBtn.disabled = true;
+        updateUI();
+      }
+    });
+  }
+
+  if (buyBgBtn) {
+    buyBgBtn.addEventListener('click', () => {
+      if (points >= costs.bg && !customBgUnlocked) {
+        points -= costs.bg;
+        customBgUnlocked = true;
+        buyBgBtn.innerText = 'UNLOCKED 🖼️';
+        buyBgBtn.disabled = true;
+        if (gameArea) {
+          gameArea.style.backgroundImage = "url('background.jpg')";
+        }
+        updateUI();
+        alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
+      }
+    });
+  }
+
+  updateUI();
 });
 
-// Event Listeners
-if (startBtn) startBtn.addEventListener('click', startGame);
-if (mainStartBtn) mainStartBtn.addEventListener('click', startGame);
-if (restartBtn) restartBtn.addEventListener('click', startGame);
-
-if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
-if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
-
-if (gameArea) {
-  gameArea.addEventListener('pointerdown', (e) => {
-    if (!isGameActive || isPaused) return;
-    triggerGunshotFX(e.clientX, e.clientY);
-    playCustomAudio(gunshotSound);
-    if (e.target === gameArea || e.target === muzzleFlash || e.target === weaponGun) {
-      combo = 0;
+function handleGunClick(gunIndex) {
+  if (ownedGuns[gunIndex]) {
+    currentEquippedGun = gunIndex;
+    if (currentGunImg) currentGunImg.src = gunsData[gunIndex].file;
+  } else {
+    const price = gunsData[gunIndex].price;
+    if (points >= price) {
+      points -= price;
+      ownedGuns[gunIndex] = true;
+      currentEquippedGun = gunIndex;
+      if (currentGunImg) currentGunImg.src = gunsData[gunIndex].file;
       updateUI();
     }
-  });
+  }
+  updateGunShopUI();
 }
 
-// Shop Upgrades
-if (buyMultiplierBtn) {
-  buyMultiplierBtn.addEventListener('click', () => {
-    if (points >= costs.multiplier) {
-      points -= costs.multiplier;
-      pointsMultiplier *= 2;
-      costs.multiplier = Math.floor(costs.multiplier * 2.5);
-      buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-      updateUI();
-    }
-  });
-}
+function updateGunShopUI() {
+  for (let i = 0; i < 8; i++) {
+    const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
+    if (!btn) continue;
 
-if (buyTimeBtn) {
-  buyTimeBtn.addEventListener('click', () => {
-    if (points >= costs.time) {
-      points -= costs.time;
-      remainingTime += 10;
-      baseGameTime += 10;
-      costs.time = Math.floor(costs.time * 2);
-      buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
-      updateUI();
+    if (currentEquippedGun === i) {
+      btn.innerText = "Equipped";
+      btn.disabled = true;
+      btn.classList.add('equipped-status');
+    } else if (ownedGuns[i]) {
+      btn.innerText = "Equip";
+      btn.disabled = false;
+      btn.classList.remove('equipped-status');
+    } else {
+      const price = gunsData[i].price;
+      btn.innerText = `Buy (${price} Pts)`;
+      btn.disabled = points < price;
+      btn.classList.remove('equipped-status');
     }
-  });
-}
-
-if (buyShieldBtn) {
-  buyShieldBtn.addEventListener('click', () => {
-    if (points >= costs.shield && !hasShield) {
-      points -= costs.shield;
-      hasShield = true;
-      buyShieldBtn.innerText = 'ACTIVE 🛡️';
-      buyShieldBtn.disabled = true;
-      updateUI();
-    }
-  });
-}
-
-if (buyCritBtn) {
-  buyCritBtn.addEventListener('click', () => {
-    if (points >= costs.crit && !hasCrit) {
-      points -= costs.crit;
-      hasCrit = true;
-      buyCritBtn.innerText = 'ACTIVE 💥';
-      buyCritBtn.disabled = true;
-      updateUI();
-    }
-  });
-}
-
-if (buyBgBtn) {
-  buyBgBtn.addEventListener('click', () => {
-    if (points >= costs.bg && !customBgUnlocked) {
-      points -= costs.bg;
-      customBgUnlocked = true;
-      buyBgBtn.innerText = 'UNLOCKED 🖼️';
-      buyBgBtn.disabled = true;
-      if (gameArea) {
-        gameArea.style.backgroundImage = "url('background.jpg')";
-      }
-      updateUI();
-      // Trigger warning alert when background upgrade is bought
-      alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
-    }
-  });
+  }
 }
 
 function updateUI() {
@@ -207,6 +302,8 @@ function updateUI() {
   if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
   if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
   if (buyBgBtn) buyBgBtn.disabled = points < costs.bg || customBgUnlocked;
+
+  updateGunShopUI();
 }
 
 function openShop() {
@@ -246,6 +343,11 @@ function startGame() {
   pointsMultiplier = 1;
   remainingTime = baseGameTime;
   
+  // RESET GUN INVENTORY TO PISTOL ONLY EVERY ROUND
+  ownedGuns = [true, false, false, false, false, false, false, false];
+  currentEquippedGun = 0;
+  if (currentGunImg) currentGunImg.src = gunsData[0].file;
+
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
 
@@ -555,5 +657,3 @@ function endGame() {
   if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
-
-updateUI();
