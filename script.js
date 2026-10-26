@@ -1,3 +1,21 @@
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAzdFxsG2FeJXkiDprYTEE2tWiE4XTyiuk",
+  authDomain: "tactical-headshot.firebaseapp.com",
+  projectId: "tactical-headshot",
+  storageBucket: "tactical-headshot.firebasestorage.app",
+  messagingSenderId: "170041917227",
+  appId: "1:170041917227:web:91fd93e252513e74938f6e",
+  measurementId: "G-9S53WC20WC"
+};
+
+// Initialize Firebase (Compat Version)
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+
 const headImages = [
   'images/head1.png',  // 0: Putin
   'images/head2.png',  // 1: Trump
@@ -12,13 +30,8 @@ const headImages = [
 ];
 
 const penaltyHead = 'images/head11.png'; // Instant game-over penalty target
+const flagImages = ['images/flag1.png', 'images/flag2.png'];
 
-const flagImages = [
-  'images/flag1.png', // 0: Israel Flag
-  'images/flag2.png'  // 1: Russia Flag
-];
-
-// 8 Guns Definition with High-Score Scaled Prices & File paths
 const gunsData = [
   { name: "Standard Pistol", price: 0, file: "guns/gun1.png" },
   { name: "Compact Sidearm", price: 5000, file: "guns/gun2.png" },
@@ -30,16 +43,14 @@ const gunsData = [
   { name: "Heavy RPG", price: 250000, file: "guns/gun8.png" }
 ];
 
-// Gun Inventory & State
 let ownedGuns = [true, false, false, false, false, false, false, false];
 let currentEquippedGun = 0;
 
-// Load Custom Audio Files
 const gunshotSound = new Audio('audio/gunshot.mp3');
 const bombSound = new Audio('audio/bomb.mp3');
 const israelSound = new Audio('audio/israel.mp3');
 const russiaSound = new Audio('audio/russia.mp3');
-const moazSound = new Audio('audio/moaz.mp3'); // Custom sound for Moaz
+const moazSound = new Audio('audio/moaz.mp3');
 
 const allSounds = [gunshotSound, bombSound, israelSound, russiaSound, moazSound];
 
@@ -48,18 +59,12 @@ function playCustomAudio(audioObj) {
     sound.pause();
     sound.currentTime = 0;
   });
-
   audioObj.currentTime = 0;
   audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
 }
 
-// Tracking shots for each target
-let hitCounts = {
-  head: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  flag: [0, 0]
-};
+let hitCounts = { head: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], flag: [0, 0] };
 
-// Game State Variables
 let points = 0;
 let pointsMultiplier = 1;
 let combo = 0;
@@ -73,29 +78,21 @@ let customBgUnlocked = false;
 
 let isGameActive = false;
 let isPaused = false;
-
 let gameTimer = null;
 let spawnInterval = null;
 let moveInterval = null;
 
-// Upgrade Costs (Base tracking variables)
-let initialCosts = {
-  multiplier: 50,
-  time: 75,
-  shield: 90,
-  crit: 110,
-  bg: 150
-};
+let initialCosts = { multiplier: 50, time: 75, shield: 90, crit: 110, bg: 150 };
 let costs = { ...initialCosts };
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
 let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
-let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
-let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
+let authScreen, authUsernameInput, authPasswordInput, loginBtn, registerBtn, authError;
+let startScreen, playerNameDisplay, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
+let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, leaderboardList;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
-// Initialize when DOM is fully ready
 window.addEventListener('DOMContentLoaded', () => {
   pointsDisplay = document.getElementById('points-display');
   comboDisplay = document.getElementById('combo-display');
@@ -112,7 +109,15 @@ window.addEventListener('DOMContentLoaded', () => {
   shopToggleBtn = document.getElementById('shop-toggle-btn');
   closeShopBtn = document.getElementById('close-shop-btn');
 
+  authScreen = document.getElementById('auth-screen');
+  authUsernameInput = document.getElementById('auth-username');
+  authPasswordInput = document.getElementById('auth-password');
+  loginBtn = document.getElementById('login-btn');
+  registerBtn = document.getElementById('register-btn');
+  authError = document.getElementById('auth-error');
+
   startScreen = document.getElementById('start-screen');
+  playerNameDisplay = document.getElementById('player-name-display');
   shopModal = document.getElementById('shop-modal');
   gameOverScreen = document.getElementById('game-over-screen');
   gameOverTitle = document.getElementById('game-over-title');
@@ -121,8 +126,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   tabUpgradesBtn = document.getElementById('tab-upgrades-btn');
   tabGunsBtn = document.getElementById('tab-guns-btn');
+  tabLeaderboardBtn = document.getElementById('tab-leaderboard-btn');
   sectionUpgrades = document.getElementById('section-upgrades');
   sectionGuns = document.getElementById('section-guns');
+  sectionLeaderboard = document.getElementById('section-leaderboard');
+  leaderboardList = document.getElementById('leaderboard-list');
 
   buyMultiplierBtn = document.getElementById('buy-multiplier');
   buyTimeBtn = document.getElementById('buy-time');
@@ -130,10 +138,77 @@ window.addEventListener('DOMContentLoaded', () => {
   buyCritBtn = document.getElementById('buy-crit');
   buyBgBtn = document.getElementById('buy-bg');
 
-  // Show warning popup on first load
   alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
 
-  // Event Listeners
+  registerBtn.addEventListener('click', () => {
+    const username = authUsernameInput.value.trim();
+    const password = authPasswordInput.value.trim();
+    if (!username || !password) {
+      authError.innerText = "Please enter username and password.";
+      return;
+    }
+    const fakeEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@tacticalheadshot.game`;
+    auth.createUserWithEmailAndPassword(fakeEmail, password)
+      .then(() => {
+        currentUser = username;
+        authScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        playerNameDisplay.innerText = username;
+      })
+      .catch((error) => {
+        authError.innerText = error.message;
+      });
+  });
+
+  loginBtn.addEventListener('click', () => {
+    const username = authUsernameInput.value.trim();
+    const password = authPasswordInput.value.trim();
+    if (!username || !password) {
+      authError.innerText = "Please enter username and password.";
+      return;
+    }
+    const fakeEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@tacticalheadshot.game`;
+    auth.signInWithEmailAndPassword(fakeEmail, password)
+      .then(() => {
+        currentUser = username;
+        authScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        playerNameDisplay.innerText = username;
+      })
+      .catch((error) => {
+        authError.innerText = error.message;
+      });
+  });
+
+  // Tab switching
+  tabUpgradesBtn.addEventListener('click', () => {
+    tabUpgradesBtn.classList.add('active');
+    tabGunsBtn.classList.remove('active');
+    tabLeaderboardBtn.classList.remove('active');
+    sectionUpgrades.classList.remove('hidden');
+    sectionGuns.classList.add('hidden');
+    sectionLeaderboard.classList.add('hidden');
+  });
+
+  tabGunsBtn.addEventListener('click', () => {
+    tabGunsBtn.classList.add('active');
+    tabUpgradesBtn.classList.remove('active');
+    tabLeaderboardBtn.classList.remove('active');
+    sectionGuns.classList.remove('hidden');
+    sectionUpgrades.classList.add('hidden');
+    sectionLeaderboard.classList.add('hidden');
+  });
+
+  tabLeaderboardBtn.addEventListener('click', () => {
+    tabLeaderboardBtn.classList.add('active');
+    tabUpgradesBtn.classList.remove('active');
+    tabGunsBtn.classList.remove('active');
+    sectionLeaderboard.classList.remove('hidden');
+    sectionUpgrades.classList.add('hidden');
+    sectionGuns.classList.add('hidden');
+    fetchLeaderboard();
+  });
+
   if (startBtn) startBtn.addEventListener('click', startGame);
   if (mainStartBtn) mainStartBtn.addEventListener('click', startGame);
   if (restartBtn) restartBtn.addEventListener('click', startGame);
@@ -141,31 +216,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
   if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 
-  // Tab switching
-  if (tabUpgradesBtn && tabGunsBtn) {
-    tabUpgradesBtn.addEventListener('click', () => {
-      tabUpgradesBtn.classList.add('active');
-      tabGunsBtn.classList.remove('active');
-      sectionUpgrades.classList.remove('hidden');
-      sectionGuns.classList.add('hidden');
-    });
-
-    tabGunsBtn.addEventListener('click', () => {
-      tabGunsBtn.classList.add('active');
-      tabUpgradesBtn.classList.remove('active');
-      sectionGuns.classList.remove('hidden');
-      sectionUpgrades.classList.add('hidden');
-    });
-  }
-
-  // Setup Gun Shop Interaction Buttons
   for (let i = 0; i < 8; i++) {
     const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
-    if (btn) {
-      btn.addEventListener('click', () => {
-        handleGunClick(i);
-      });
-    }
+    if (btn) btn.addEventListener('click', () => handleGunClick(i));
   }
 
   if (gameArea) {
@@ -180,74 +233,103 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Shop Upgrades
-  if (buyMultiplierBtn) {
-    buyMultiplierBtn.addEventListener('click', () => {
-      if (points >= costs.multiplier) {
-        points -= costs.multiplier;
-        pointsMultiplier *= 2;
-        costs.multiplier = Math.floor(costs.multiplier * 2.5);
-        buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-        updateUI();
-      }
-    });
-  }
+  if (buyMultiplierBtn) buyMultiplierBtn.addEventListener('click', () => {
+    if (points >= costs.multiplier) {
+      points -= costs.multiplier;
+      pointsMultiplier *= 2;
+      costs.multiplier = Math.floor(costs.multiplier * 2.5);
+      buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
+      updateUI();
+    }
+  });
 
-  if (buyTimeBtn) {
-    buyTimeBtn.addEventListener('click', () => {
-      if (points >= costs.time) {
-        points -= costs.time;
-        remainingTime += 10;
-        baseGameTime += 10;
-        costs.time = Math.floor(costs.time * 2);
-        buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
-        updateUI();
-      }
-    });
-  }
+  if (buyTimeBtn) buyTimeBtn.addEventListener('click', () => {
+    if (points >= costs.time) {
+      points -= costs.time;
+      remainingTime += 10;
+      baseGameTime += 10;
+      costs.time = Math.floor(costs.time * 2);
+      buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
+      updateUI();
+    }
+  });
 
-  if (buyShieldBtn) {
-    buyShieldBtn.addEventListener('click', () => {
-      if (points >= costs.shield && !hasShield) {
-        points -= costs.shield;
-        hasShield = true;
-        buyShieldBtn.innerText = 'ACTIVE 🛡️';
-        buyShieldBtn.disabled = true;
-        updateUI();
-      }
-    });
-  }
+  if (buyShieldBtn) buyShieldBtn.addEventListener('click', () => {
+    if (points >= costs.shield && !hasShield) {
+      points -= costs.shield;
+      hasShield = true;
+      buyShieldBtn.innerText = 'ACTIVE 🛡️';
+      buyShieldBtn.disabled = true;
+      updateUI();
+    }
+  });
 
-  if (buyCritBtn) {
-    buyCritBtn.addEventListener('click', () => {
-      if (points >= costs.crit && !hasCrit) {
-        points -= costs.crit;
-        hasCrit = true;
-        buyCritBtn.innerText = 'ACTIVE 💥';
-        buyCritBtn.disabled = true;
-        updateUI();
-      }
-    });
-  }
+  if (buyCritBtn) buyCritBtn.addEventListener('click', () => {
+    if (points >= costs.crit && !hasCrit) {
+      points -= costs.crit;
+      hasCrit = true;
+      buyCritBtn.innerText = 'ACTIVE 💥';
+      buyCritBtn.disabled = true;
+      updateUI();
+    }
+  });
 
-  if (buyBgBtn) {
-    buyBgBtn.addEventListener('click', () => {
-      if (points >= costs.bg && !customBgUnlocked) {
-        points -= costs.bg;
-        customBgUnlocked = true;
-        buyBgBtn.innerText = 'UNLOCKED 🖼️';
-        buyBgBtn.disabled = true;
-        if (gameArea) {
-          gameArea.style.backgroundImage = "url('background.jpg')";
-        }
-        updateUI();
-        alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
-      }
-    });
-  }
+  if (buyBgBtn) buyBgBtn.addEventListener('click', () => {
+    if (points >= costs.bg && !customBgUnlocked) {
+      points -= costs.bg;
+      customBgUnlocked = true;
+      buyBgBtn.innerText = 'UNLOCKED 🖼️';
+      buyBgBtn.disabled = true;
+      if (gameArea) gameArea.style.backgroundImage = "url('background.jpg')";
+      updateUI();
+      alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
+    }
+  });
 
   updateUI();
 });
+
+function saveScoreToLeaderboard(score) {
+  if (!currentUser) return;
+  db.collection("leaderboard").add({
+    username: currentUser,
+    score: score,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    console.log("Score saved globally!");
+  })
+  .catch((error) => {
+    console.error("Error saving score: ", error);
+  });
+}
+
+function fetchLeaderboard() {
+  leaderboardList.innerHTML = "<li>Loading global scores...</li>";
+  db.collection("leaderboard")
+    .orderBy("score", "desc")
+    .limit(10)
+    .get()
+    .then((querySnapshot) => {
+      leaderboardList.innerHTML = "";
+      if (querySnapshot.empty) {
+        leaderboardList.innerHTML = "<li>No scores recorded yet.</li>";
+        return;
+      }
+      let rank = 1;
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const li = document.createElement('li');
+        li.innerHTML = `<span>#${rank} ${data.username}</span> <span>${data.score.toLocaleString()} Pts</span>`;
+        leaderboardList.appendChild(li);
+        rank++;
+      });
+    })
+    .catch((error) => {
+      leaderboardList.innerHTML = "<li>Error loading leaderboard.</li>";
+      console.error("Error getting leaderboard: ", error);
+    });
+}
 
 function handleGunClick(gunIndex) {
   if (ownedGuns[gunIndex]) {
@@ -270,7 +352,6 @@ function updateGunShopUI() {
   for (let i = 0; i < 8; i++) {
     const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
     if (!btn) continue;
-
     if (currentEquippedGun === i) {
       btn.innerText = "Equipped";
       btn.disabled = true;
@@ -350,7 +431,6 @@ function startGame() {
   baseGameTime = 30;
   remainingTime = 30;
   
-  // FULL RESET OF ALL UPGRADES AND PURCHASES EVERY ROUND
   costs = { ...initialCosts };
   hasShield = false;
   hasCrit = false;
@@ -371,7 +451,6 @@ function startGame() {
     buyBgBtn.disabled = false;
   }
 
-  // RESET GUN INVENTORY TO PISTOL ONLY
   ownedGuns = [true, false, false, false, false, false, false, false];
   currentEquippedGun = 0;
   if (currentGunImg) currentGunImg.src = gunsData[0].file;
@@ -379,9 +458,7 @@ function startGame() {
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   hitCounts.flag = [0, 0];
 
-  if (gameArea) {
-    gameArea.style.backgroundImage = "";
-  }
+  if (gameArea) gameArea.style.backgroundImage = "";
 
   updateUI();
 
@@ -467,10 +544,7 @@ function spawnEntity(forceBombCheck = true) {
     });
 
     gameArea.appendChild(bomb);
-
-    setTimeout(() => {
-      if (bomb.parentNode && !isPaused) bomb.remove();
-    }, headLingerTime);
+    setTimeout(() => { if (bomb.parentNode && !isPaused) bomb.remove(); }, headLingerTime);
 
   } else if (isPenalty) {
     const target = document.createElement('img');
@@ -496,12 +570,7 @@ function spawnEntity(forceBombCheck = true) {
     });
 
     gameArea.appendChild(target);
-
-    setTimeout(() => {
-      if (target.parentNode && !target.classList.contains('shot') && !isPaused) {
-        target.remove();
-      }
-    }, headLingerTime);
+    setTimeout(() => { if (target.parentNode && !target.classList.contains('shot') && !isPaused) target.remove(); }, headLingerTime);
 
   } else if (isFlag) {
     const flagIndex = Math.floor(Math.random() * flagImages.length);
@@ -529,12 +598,7 @@ function spawnEntity(forceBombCheck = true) {
     });
 
     gameArea.appendChild(flag);
-
-    setTimeout(() => {
-      if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) {
-        flag.remove();
-      }
-    }, headLingerTime);
+    setTimeout(() => { if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) flag.remove(); }, headLingerTime);
 
   } else {
     const headIndex = Math.floor(Math.random() * headImages.length);
@@ -565,12 +629,7 @@ function spawnEntity(forceBombCheck = true) {
     });
 
     gameArea.appendChild(target);
-
-    setTimeout(() => {
-      if (target.parentNode && !target.classList.contains('shot') && !isPaused) {
-        target.remove();
-      }
-    }, headLingerTime);
+    setTimeout(() => { if (target.parentNode && !target.classList.contains('shot') && !isPaused) target.remove(); }, headLingerTime);
   }
 }
 
@@ -584,9 +643,7 @@ function moveTargets() {
     let vx = parseFloat(t.dataset.vx) || 1;
 
     currentLeft += vx;
-    if (currentLeft <= 5 || currentLeft >= maxW - 5) {
-      t.dataset.vx = -vx;
-    }
+    if (currentLeft <= 5 || currentLeft >= maxW - 5) t.dataset.vx = -vx;
     t.style.left = `${currentLeft}px`;
   });
 }
@@ -596,36 +653,25 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   combo++;
   hitCounts.head[headIndex]++;
 
-  // Play custom sound for Moaz (index 9), otherwise play standard gunshot
-  if (headIndex === 9) {
-    playCustomAudio(moazSound);
-  } else {
-    playCustomAudio(gunshotSound);
-  }
+  if (headIndex === 9) playCustomAudio(moazSound);
+  else playCustomAudio(gunshotSound);
 
   let isCrit = hasCrit && Math.random() < 0.25;
   let basePoints = isGolden ? 30 : 10;
   let comboBonus = Math.floor(combo / 3);
   let hitPoints = (basePoints + comboBonus) * pointsMultiplier;
 
-  if (isCrit) {
-    hitPoints *= 3;
-  }
+  if (isCrit) hitPoints *= 3;
 
   points += hitPoints;
   updateUI();
 
   triggerGunshotFX(clientX, clientY);
   
-  if (isCrit) {
-    showPopup(clientX, clientY, `CRIT! +${hitPoints}`, 'crit');
-  } else {
-    showPopup(clientX, clientY, `+${hitPoints}`, isGolden ? 'gold' : '');
-  }
+  if (isCrit) showPopup(clientX, clientY, `CRIT! +${hitPoints}`, 'crit');
+  else showPopup(clientX, clientY, `+${hitPoints}`, isGolden ? 'gold' : '');
 
-  setTimeout(() => {
-    if (target.parentNode) target.remove();
-  }, 350);
+  setTimeout(() => { if (target.parentNode) target.remove(); }, 350);
 }
 
 function hitPenaltyHead(target, clientX, clientY) {
@@ -635,7 +681,6 @@ function hitPenaltyHead(target, clientX, clientY) {
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 
   triggerGunshotFX(clientX, clientY);
-
   gameArea.classList.remove('danger-flash');
   void gameArea.offsetWidth;
   gameArea.classList.add('danger-flash');
@@ -654,11 +699,8 @@ function hitFlag(flag, clientX, clientY, flagIndex) {
   combo++;
   hitCounts.flag[flagIndex]++;
 
-  if (flagIndex === 0) {
-    playCustomAudio(israelSound);
-  } else if (flagIndex === 1) {
-    playCustomAudio(russiaSound);
-  }
+  if (flagIndex === 0) playCustomAudio(israelSound);
+  else if (flagIndex === 1) playCustomAudio(russiaSound);
 
   let flagPoints = 50 * pointsMultiplier;
   points += flagPoints;
@@ -668,9 +710,7 @@ function hitFlag(flag, clientX, clientY, flagIndex) {
   triggerGunshotFX(clientX, clientY);
   showPopup(clientX, clientY, `FLAG! +${flagPoints} & MULT+1!`, 'flag');
 
-  setTimeout(() => {
-    if (flag.parentNode) flag.remove();
-  }, 350);
+  setTimeout(() => { if (flag.parentNode) flag.remove(); }, 350);
 }
 
 function hitBomb(bomb, clientX, clientY) {
@@ -734,6 +774,8 @@ function endGame(titleText = "ROUND COMPLETE") {
     personalBest = points;
     localStorage.setItem('tactical_high_score', personalBest);
   }
+
+  saveScoreToLeaderboard(points);
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
