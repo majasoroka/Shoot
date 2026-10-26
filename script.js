@@ -1,4 +1,3 @@
-// Your web app's Firebase configuration (split to bypass automated secret scanners)
 const firebaseConfig = {
   apiKey: "AIzaSy" + "AzdFxsG" + "2FeJXkiDprYTEE2tWiE4XTyiuk",
   authDomain: "tactical-headshot.firebaseapp.com",
@@ -9,27 +8,20 @@ const firebaseConfig = {
   measurementId: "G-9S53WC20WC"
 };
 
-// Initialize Firebase (Compat Version)
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser = null;
+let currentUserData = null; // Stores uid, username, email, pfp
+let isRegisterMode = false;
 
 const headImages = [
-  'images/head1.png',  // 0: Putin
-  'images/head2.png',  // 1: Trump
-  'images/head3.png',  // 2: Eduardo Bolsonaro
-  'images/head4.png',  // 3: Flávio Bolsonaro
-  'images/head5.png',  // 4: Jair Bolsonaro
-  'images/head6.png',  // 5: Ben Gvir
-  'images/head7.png',  // 6: Rupert Lowe
-  'images/head8.png',  // 7: Nigel Farage
-  'images/head9.png',  // 8: Netanyahu
-  'images/head10.png'  // 9: Moaz
+  'images/head1.png', 'images/head2.png', 'images/head3.png', 'images/head4.png',
+  'images/head5.png', 'images/head6.png', 'images/head7.png', 'images/head8.png',
+  'images/head9.png', 'images/head10.png'
 ];
 
-const penaltyHead = 'images/head11.png'; // Instant game-over penalty target
+const penaltyHead = 'images/head11.png';
 const flagImages = ['images/flag1.png', 'images/flag2.png'];
 
 const gunsData = [
@@ -60,7 +52,7 @@ function playCustomAudio(audioObj) {
     sound.currentTime = 0;
   });
   audioObj.currentTime = 0;
-  audioObj.play().catch(e => console.log("Audio play blocked or file missing:", e));
+  audioObj.play().catch(e => console.log("Audio play blocked:", e));
 }
 
 let hitCounts = { head: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], flag: [0, 0] };
@@ -88,9 +80,10 @@ let costs = { ...initialCosts };
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
 let startBtn, mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
-let authScreen, authUsernameInput, authPasswordInput, loginBtn, registerBtn, authError;
-let startScreen, playerNameDisplay, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
-let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, leaderboardList;
+let authScreen, authLoginInput, authEmailInput, authPasswordInput, loginTabSubmit, registerTabSubmit, toggleAuthModeBtn, authError;
+let startScreen, playerNameDisplay, hudUserPfp, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay;
+let tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn, sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount, leaderboardList;
+let settingsPfpInput, settingsPfpPreview, settingsUsernameInput, settingsPasswordInput, saveAccountBtn, accountMsg;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -110,14 +103,17 @@ window.addEventListener('DOMContentLoaded', () => {
   closeShopBtn = document.getElementById('close-shop-btn');
 
   authScreen = document.getElementById('auth-screen');
-  authUsernameInput = document.getElementById('auth-username');
+  authLoginInput = document.getElementById('auth-login-input');
+  authEmailInput = document.getElementById('auth-email-input');
   authPasswordInput = document.getElementById('auth-password');
-  loginBtn = document.getElementById('login-btn');
-  registerBtn = document.getElementById('register-btn');
+  loginTabSubmit = document.getElementById('login-tab-submit');
+  registerTabSubmit = document.getElementById('register-tab-submit');
+  toggleAuthModeBtn = document.getElementById('toggle-auth-mode');
   authError = document.getElementById('auth-error');
 
   startScreen = document.getElementById('start-screen');
   playerNameDisplay = document.getElementById('player-name-display');
+  hudUserPfp = document.getElementById('hud-user-pfp');
   shopModal = document.getElementById('shop-modal');
   gameOverScreen = document.getElementById('game-over-screen');
   gameOverTitle = document.getElementById('game-over-title');
@@ -127,10 +123,19 @@ window.addEventListener('DOMContentLoaded', () => {
   tabUpgradesBtn = document.getElementById('tab-upgrades-btn');
   tabGunsBtn = document.getElementById('tab-guns-btn');
   tabLeaderboardBtn = document.getElementById('tab-leaderboard-btn');
+  tabAccountBtn = document.getElementById('tab-account-btn');
   sectionUpgrades = document.getElementById('section-upgrades');
   sectionGuns = document.getElementById('section-guns');
   sectionLeaderboard = document.getElementById('section-leaderboard');
+  sectionAccount = document.getElementById('section-account');
   leaderboardList = document.getElementById('leaderboard-list');
+
+  settingsPfpInput = document.getElementById('settings-pfp-input');
+  settingsPfpPreview = document.getElementById('settings-pfp-preview');
+  settingsUsernameInput = document.getElementById('settings-username-input');
+  settingsPasswordInput = document.getElementById('settings-password-input');
+  saveAccountBtn = document.getElementById('save-account-btn');
+  accountMsg = document.getElementById('account-msg');
 
   buyMultiplierBtn = document.getElementById('buy-multiplier');
   buyTimeBtn = document.getElementById('buy-time');
@@ -138,75 +143,160 @@ window.addEventListener('DOMContentLoaded', () => {
   buyCritBtn = document.getElementById('buy-crit');
   buyBgBtn = document.getElementById('buy-bg');
 
-  alert("WARNING‼️\n\napparently some people are stupid enough to think upgrades work when you’re not in a round. IT DOESN’T. upgrades are only available during a round.\n\nALSO: PLAY WITH SOUND ON, THE SOUND EFFECTS ARE THE BEST PART. THE BACKGROUND UPGRADE IS ALSO THE BEST UPGRADE.");
+  // Toggle between Login and Register views
+  toggleAuthModeBtn.addEventListener('click', () => {
+    isRegisterMode = !isRegisterMode;
+    if (isRegisterMode) {
+      authEmailInput.classList.remove('hidden');
+      authLoginInput.placeholder = "Username (e.g. Maja27492)";
+      registerTabSubmit.classList.remove('hidden');
+      loginTabSubmit.classList.add('hidden');
+      toggleAuthModeBtn.innerText = "Already have an account? Log in here";
+    } else {
+      authEmailInput.classList.add('hidden');
+      authLoginInput.placeholder = "Username or Email";
+      loginTabSubmit.classList.remove('hidden');
+      registerTabSubmit.classList.add('hidden');
+      toggleAuthModeBtn.innerText = "Need an account? Register here";
+    }
+    authError.innerText = "";
+  });
 
-  registerBtn.addEventListener('click', () => {
-    const username = authUsernameInput.value.trim();
+  // Register with Email, Password & Username
+  registerTabSubmit.addEventListener('click', async () => {
+    const username = authLoginInput.value.trim();
+    const email = authEmailInput.value.trim();
     const password = authPasswordInput.value.trim();
-    if (!username || !password) {
-      authError.innerText = "Please enter username and password.";
+
+    if (!username || !email || !password) {
+      authError.innerText = "Please fill out all fields.";
       return;
     }
-    const fakeEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@tacticalheadshot.game`;
-    auth.createUserWithEmailAndPassword(fakeEmail, password)
-      .then(() => {
-        currentUser = username;
-        authScreen.classList.add('hidden');
-        startScreen.classList.remove('hidden');
-        playerNameDisplay.innerText = username;
-      })
-      .catch((error) => {
-        authError.innerText = error.message;
+
+    try {
+      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      const uid = userCred.user.uid;
+      const defaultPfp = "images/default-avatar.png";
+
+      // Save user profile data to Firestore
+      await db.collection("users").doc(uid).set({
+        username: username,
+        email: email,
+        pfp: defaultPfp
       });
+
+      currentUserData = { uid, username, email, pfp: defaultPfp };
+      transitionToGame();
+    } catch (error) {
+      authError.innerText = error.message;
+    }
   });
 
-  loginBtn.addEventListener('click', () => {
-    const username = authUsernameInput.value.trim();
+  // Login with Username or Email
+  loginTabSubmit.addEventListener('click', async () => {
+    const loginInput = authLoginInput.value.trim();
     const password = authPasswordInput.value.trim();
-    if (!username || !password) {
-      authError.innerText = "Please enter username and password.";
+
+    if (!loginInput || !password) {
+      authError.innerText = "Please enter login and password.";
       return;
     }
-    const fakeEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@tacticalheadshot.game`;
-    auth.signInWithEmailAndPassword(fakeEmail, password)
-      .then(() => {
-        currentUser = username;
-        authScreen.classList.add('hidden');
-        startScreen.classList.remove('hidden');
-        playerNameDisplay.innerText = username;
-      })
-      .catch((error) => {
-        authError.innerText = error.message;
-      });
+
+    try {
+      let emailToUse = loginInput;
+      // If user typed a username instead of an email, look up their email in Firestore first
+      if (!loginInput.includes('@')) {
+        const querySnapshot = await db.collection("users").where("username", "==", loginInput).get();
+        if (querySnapshot.empty) {
+          authError.innerText = "Username not found.";
+          return;
+        }
+        emailToUse = querySnapshot.docs[0].data().email;
+      }
+
+      const userCred = await auth.signInWithEmailAndPassword(emailToUse, password);
+      const uid = userCred.user.uid;
+      const userDoc = await db.collection("users").doc(uid).get();
+
+      if (userDoc.exists) {
+        currentUserData = { uid, ...userDoc.data() };
+      } else {
+        currentUserData = { uid, username: loginInput, email: emailToUse, pfp: "images/default-avatar.png" };
+      }
+      transitionToGame();
+    } catch (error) {
+      authError.innerText = error.message;
+    }
   });
 
-  // Tab switching
-  tabUpgradesBtn.addEventListener('click', () => {
-    tabUpgradesBtn.classList.add('active');
-    tabGunsBtn.classList.remove('active');
-    tabLeaderboardBtn.classList.remove('active');
-    sectionUpgrades.classList.remove('hidden');
-    sectionGuns.classList.add('hidden');
-    sectionLeaderboard.classList.add('hidden');
+  function transitionToGame() {
+    authScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    playerNameDisplay.innerText = currentUserData.username;
+    hudUserPfp.src = currentUserData.pfp || "images/default-avatar.png";
+  }
+
+  // Tab switching inside armory modal
+  const tabs = [tabUpgradesBtn, tabGunsBtn, tabLeaderboardBtn, tabAccountBtn];
+  const sections = [sectionUpgrades, sectionGuns, sectionLeaderboard, sectionAccount];
+
+  function switchTab(activeBtn, activeSection) {
+    tabs.forEach(t => t.classList.remove('active'));
+    sections.forEach(s => s.classList.add('hidden'));
+    activeBtn.classList.add('active');
+    activeSection.classList.remove('hidden');
+    if (activeSection === sectionLeaderboard) fetchLeaderboard();
+    if (activeSection === sectionAccount) loadAccountSettings();
+  }
+
+  tabUpgradesBtn.addEventListener('click', () => switchTab(tabUpgradesBtn, sectionUpgrades));
+  tabGunsBtn.addEventListener('click', () => switchTab(tabGunsBtn, sectionGuns));
+  tabLeaderboardBtn.addEventListener('click', () => switchTab(tabLeaderboardBtn, sectionLeaderboard));
+  tabAccountBtn.addEventListener('click', () => switchTab(tabAccountBtn, sectionAccount));
+
+  // Account Settings Live Preview & Saving
+  settingsPfpInput.addEventListener('input', () => {
+    settingsPfpPreview.src = settingsPfpInput.value.trim() || currentUserData.pfp || "images/default-avatar.png";
   });
 
-  tabGunsBtn.addEventListener('click', () => {
-    tabGunsBtn.classList.add('active');
-    tabUpgradesBtn.classList.remove('active');
-    tabLeaderboardBtn.classList.remove('active');
-    sectionGuns.classList.remove('hidden');
-    sectionUpgrades.classList.add('hidden');
-    sectionLeaderboard.classList.add('hidden');
-  });
+  function loadAccountSettings() {
+    if (!currentUserData) return;
+    settingsUsernameInput.value = currentUserData.username || "";
+    settingsPfpInput.value = currentUserData.pfp === "images/default-avatar.png" ? "" : currentUserData.pfp;
+    settingsPfpPreview.src = currentUserData.pfp || "images/default-avatar.png";
+    settingsPasswordInput.value = "";
+    accountMsg.innerText = "";
+  }
 
-  tabLeaderboardBtn.addEventListener('click', () => {
-    tabLeaderboardBtn.classList.add('active');
-    tabUpgradesBtn.classList.remove('active');
-    tabGunsBtn.classList.remove('active');
-    sectionLeaderboard.classList.remove('hidden');
-    sectionUpgrades.classList.add('hidden');
-    sectionGuns.classList.add('hidden');
-    fetchLeaderboard();
+  saveAccountBtn.addEventListener('click', async () => {
+    if (!currentUserData) return;
+    const newUsername = settingsUsernameInput.value.trim();
+    const newPfp = settingsPfpInput.value.trim() || "images/default-avatar.png";
+    const newPassword = settingsPasswordInput.value.trim();
+
+    try {
+      accountMsg.innerText = "Saving...";
+      const userRef = db.collection("users").doc(currentUserData.uid);
+
+      let updateData = { pfp: newPfp };
+      if (newUsername && newUsername !== currentUserData.username) {
+        updateData.username = newUsername;
+        currentUserData.username = newUsername;
+        playerNameDisplay.innerText = newUsername;
+      }
+
+      await userRef.update(updateData);
+      currentUserData.pfp = newPfp;
+      hudUserPfp.src = newPfp;
+
+      if (newPassword) {
+        await auth.currentUser.updatePassword(newPassword);
+      }
+
+      accountMsg.innerText = "Changes saved successfully!";
+    } catch (error) {
+      accountMsg.innerText = "Error: " + error.message;
+    }
   });
 
   if (startBtn) startBtn.addEventListener('click', startGame);
@@ -289,21 +379,19 @@ window.addEventListener('DOMContentLoaded', () => {
   updateUI();
 });
 
+// Save score with user's current username and pfp snapshot
 function saveScoreToLeaderboard(score) {
-  if (!currentUser) return;
+  if (!currentUserData) return;
   db.collection("leaderboard").add({
-    username: currentUser,
+    uid: currentUserData.uid,
+    username: currentUserData.username,
+    pfp: currentUserData.pfp || "images/default-avatar.png",
     score: score,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    console.log("Score saved globally!");
-  })
-  .catch((error) => {
-    console.error("Error saving score: ", error);
-  });
+  }).catch(error => console.error("Error saving score:", error));
 }
 
+// Fetch Leaderboard with Profile Pictures
 function fetchLeaderboard() {
   leaderboardList.innerHTML = "<li>Loading global scores...</li>";
   db.collection("leaderboard")
@@ -320,14 +408,22 @@ function fetchLeaderboard() {
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const li = document.createElement('li');
-        li.innerHTML = `<span>#${rank} ${data.username}</span> <span>${data.score.toLocaleString()} Pts</span>`;
+        const userPfp = data.pfp || "images/default-avatar.png";
+        li.innerHTML = `
+          <div class="lb-user-info">
+            <span>#${rank}</span>
+            <img src="${userPfp}" class="lb-pfp" alt="">
+            <span>${data.username}</span>
+          </div>
+          <span>${data.score.toLocaleString()} Pts</span>
+        `;
         leaderboardList.appendChild(li);
         rank++;
       });
     })
     .catch((error) => {
       leaderboardList.innerHTML = "<li>Error loading leaderboard.</li>";
-      console.error("Error getting leaderboard: ", error);
+      console.error("Error getting leaderboard:", error);
     });
 }
 
