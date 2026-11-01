@@ -56,8 +56,10 @@ let targetSize = 75;
 let headLingerTime = 1800;
 let hasShield = false;
 let hasCrit = false;
+
 let bgMoazUnlocked = false;
 let bgGoatUnlocked = false;
+let currentBg = 'default'; // 'default', 'moaz', or 'goat'
 
 let isGameActive = false;
 let isPaused = false;
@@ -193,26 +195,40 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (buyBgMoazBtn) buyBgMoazBtn.addEventListener('click', () => {
     if (!isGameActive) return;
-    if (points >= costs.bgMoaz && !bgMoazUnlocked) {
-      points -= costs.bgMoaz;
-      bgMoazUnlocked = true;
-      buyBgMoazBtn.innerText = 'UNLOCKED 🖼️';
-      buyBgMoazBtn.disabled = true;
+    if (bgMoazUnlocked) {
+      // Already owned, just equip it
+      currentBg = 'moaz';
       if (gameArea) gameArea.style.backgroundImage = "url('background_moaz.jpg')";
       updateUI();
+    } else {
+      // Buy it
+      if (points >= costs.bgMoaz) {
+        points -= costs.bgMoaz;
+        bgMoazUnlocked = true;
+        currentBg = 'moaz';
+        if (gameArea) gameArea.style.backgroundImage = "url('background_moaz.jpg')";
+        updateUI();
+      }
     }
   });
 
   if (buyBgGoatBtn) buyBgGoatBtn.addEventListener('click', () => {
     if (!isGameActive) return;
-    if (points >= costs.bgGoat && !bgGoatUnlocked) {
-      points -= costs.bgGoat;
-      bgGoatUnlocked = true;
-      buyBgGoatBtn.innerText = 'UNLOCKED 🖼️';
-      buyBgGoatBtn.disabled = true;
+    if (bgGoatUnlocked) {
+      // Already owned, just equip it
+      currentBg = 'goat';
       if (gameArea) gameArea.style.backgroundImage = "url('background.jpg')";
       updateUI();
-      alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
+    } else {
+      // Buy it
+      if (points >= costs.bgGoat) {
+        points -= costs.bgGoat;
+        bgGoatUnlocked = true;
+        currentBg = 'goat';
+        if (gameArea) gameArea.style.backgroundImage = "url('background.jpg')";
+        updateUI();
+        alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
+      }
     }
   });
 
@@ -293,8 +309,40 @@ function updateUI() {
     if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
     if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
     if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
-    if (buyBgMoazBtn) buyBgMoazBtn.disabled = points < costs.bgMoaz || bgMoazUnlocked;
-    if (buyBgGoatBtn) buyBgGoatBtn.disabled = points < costs.bgGoat || bgGoatUnlocked;
+
+    // Background Moaz Button UI logic
+    if (bgMoazUnlocked) {
+      if (currentBg === 'moaz') {
+        buyBgMoazBtn.innerText = "Equipped";
+        buyBgMoazBtn.disabled = true;
+        buyBgMoazBtn.classList.add('equipped-status');
+      } else {
+        buyBgMoazBtn.innerText = "Equip";
+        buyBgMoazBtn.disabled = false;
+        buyBgMoazBtn.classList.remove('equipped-status');
+      }
+    } else {
+      buyBgMoazBtn.innerText = `Buy (${costs.bgMoaz} Pts)`;
+      buyBgMoazBtn.disabled = points < costs.bgMoaz;
+      buyBgMoazBtn.classList.remove('equipped-status');
+    }
+
+    // Background Goat Button UI logic
+    if (bgGoatUnlocked) {
+      if (currentBg === 'goat') {
+        buyBgGoatBtn.innerText = "Equipped";
+        buyBgGoatBtn.disabled = true;
+        buyBgGoatBtn.classList.add('equipped-status');
+      } else {
+        buyBgGoatBtn.innerText = "Equip";
+        buyBgGoatBtn.disabled = false;
+        buyBgGoatBtn.classList.remove('equipped-status');
+      }
+    } else {
+      buyBgGoatBtn.innerText = `Buy (${costs.bgGoat} Pts)`;
+      buyBgGoatBtn.disabled = points < costs.bgGoat;
+      buyBgGoatBtn.classList.remove('equipped-status');
+    }
   }
 
   updateGunShopUI();
@@ -348,6 +396,7 @@ function startGame() {
   hasCrit = false;
   bgMoazUnlocked = false;
   bgGoatUnlocked = false;
+  currentBg = 'default';
 
   if (buyMultiplierBtn) buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
   if (buyTimeBtn) buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
@@ -362,10 +411,12 @@ function startGame() {
   if (buyBgMoazBtn) {
     buyBgMoazBtn.innerText = `Buy (${costs.bgMoaz} Pts)`;
     buyBgMoazBtn.disabled = false;
+    buyBgMoazBtn.classList.remove('equipped-status');
   }
   if (buyBgGoatBtn) {
     buyBgGoatBtn.innerText = `Buy (${costs.bgGoat} Pts)`;
     buyBgGoatBtn.disabled = false;
+    buyBgGoatBtn.classList.remove('equipped-status');
   }
 
   ownedGuns = [true, false, false, false, false, false, false, false];
