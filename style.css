@@ -33,17 +33,23 @@ body {
   justify-content: space-between;
   align-items: center;
   background: linear-gradient(145deg, #18202a, #0f151d);
-  padding: 10px 14px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid #00ffcc;
   box-shadow: 0 4px 15px rgba(0, 255, 204, 0.15);
+}
+
+.hud .glow-btn {
+  font-size: 0.6rem;
+  padding: 6px 6px;
+  letter-spacing: 0px;
 }
 
 .stat-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 45px;
+  min-width: 40px;
 }
 
 .stat-box .label {
@@ -54,7 +60,7 @@ body {
 }
 
 .stat-box .val {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: #00ffcc;
   white-space: nowrap;
