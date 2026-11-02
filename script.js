@@ -59,7 +59,8 @@ let hasCrit = false;
 
 let bgMoazUnlocked = false;
 let bgGoatUnlocked = false;
-let currentBg = 'default'; // 'default', 'moaz', or 'goat'
+let bgShakhtarUnlocked = false;
+let currentBg = 'default'; // 'default', 'moaz', 'goat', or 'shakhtar'
 
 let isGameActive = false;
 let isPaused = false;
@@ -67,7 +68,7 @@ let gameTimer = null;
 let spawnInterval = null;
 let moveInterval = null;
 
-let initialCosts = { multiplier: 50, time: 75, shield: 90, crit: 110, bgMoaz: 150, bgGoat: 300 };
+let initialCosts = { multiplier: 50, time: 75, shield: 90, crit: 110, bgMoaz: 150, bgGoat: 300, bgShakhtar: 450 };
 let costs = { ...initialCosts };
 
 // DOM Elements
@@ -75,7 +76,7 @@ let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzl
 let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
 let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
-let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgMoazBtn, buyBgGoatBtn;
+let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgMoazBtn, buyBgGoatBtn, buyBgShakhtarBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
   pointsDisplay = document.getElementById('points-display');
@@ -111,6 +112,7 @@ window.addEventListener('DOMContentLoaded', () => {
   buyCritBtn = document.getElementById('buy-crit');
   buyBgMoazBtn = document.getElementById('buy-bg-moaz');
   buyBgGoatBtn = document.getElementById('buy-bg-goat');
+  buyBgShakhtarBtn = document.getElementById('buy-bg-shakhtar');
 
   const tabs = [tabUpgradesBtn, tabGunsBtn];
   const sections = [sectionUpgrades, sectionGuns];
@@ -196,12 +198,10 @@ window.addEventListener('DOMContentLoaded', () => {
   if (buyBgMoazBtn) buyBgMoazBtn.addEventListener('click', () => {
     if (!isGameActive) return;
     if (bgMoazUnlocked) {
-      // Already owned, just equip it
       currentBg = 'moaz';
       if (gameArea) gameArea.style.backgroundImage = "url('background_moaz.jpg')";
       updateUI();
     } else {
-      // Buy it
       if (points >= costs.bgMoaz) {
         points -= costs.bgMoaz;
         bgMoazUnlocked = true;
@@ -215,12 +215,10 @@ window.addEventListener('DOMContentLoaded', () => {
   if (buyBgGoatBtn) buyBgGoatBtn.addEventListener('click', () => {
     if (!isGameActive) return;
     if (bgGoatUnlocked) {
-      // Already owned, just equip it
       currentBg = 'goat';
       if (gameArea) gameArea.style.backgroundImage = "url('background.jpg')";
       updateUI();
     } else {
-      // Buy it
       if (points >= costs.bgGoat) {
         points -= costs.bgGoat;
         bgGoatUnlocked = true;
@@ -228,6 +226,23 @@ window.addEventListener('DOMContentLoaded', () => {
         if (gameArea) gameArea.style.backgroundImage = "url('background.jpg')";
         updateUI();
         alert("ALERT‼️ you are not shooting me as a child, you are shooting those bitches to protect me as a child from them. if you miss and shoot me instead, then fuck you.");
+      }
+    }
+  });
+
+  if (buyBgShakhtarBtn) buyBgShakhtarBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
+    if (bgShakhtarUnlocked) {
+      currentBg = 'shakhtar';
+      if (gameArea) gameArea.style.backgroundImage = "url('background_shakhtar.jpg')";
+      updateUI();
+    } else {
+      if (points >= costs.bgShakhtar) {
+        points -= costs.bgShakhtar;
+        bgShakhtarUnlocked = true;
+        currentBg = 'shakhtar';
+        if (gameArea) gameArea.style.backgroundImage = "url('background_shakhtar.jpg')";
+        updateUI();
       }
     }
   });
@@ -304,6 +319,7 @@ function updateUI() {
     if (buyCritBtn) { buyCritBtn.disabled = true; buyCritBtn.innerText = "Unavailable"; }
     if (buyBgMoazBtn) { buyBgMoazBtn.disabled = true; buyBgMoazBtn.innerText = "Unavailable"; }
     if (buyBgGoatBtn) { buyBgGoatBtn.disabled = true; buyBgGoatBtn.innerText = "Unavailable"; }
+    if (buyBgShakhtarBtn) { buyBgShakhtarBtn.disabled = true; buyBgShakhtarBtn.innerText = "Unavailable"; }
   } else {
     if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
     if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
@@ -342,6 +358,23 @@ function updateUI() {
       buyBgGoatBtn.innerText = `Buy (${costs.bgGoat} Pts)`;
       buyBgGoatBtn.disabled = points < costs.bgGoat;
       buyBgGoatBtn.classList.remove('equipped-status');
+    }
+
+    // Background Shakhtar Button UI logic
+    if (bgShakhtarUnlocked) {
+      if (currentBg === 'shakhtar') {
+        buyBgShakhtarBtn.innerText = "Equipped";
+        buyBgShakhtarBtn.disabled = true;
+        buyBgShakhtarBtn.classList.add('equipped-status');
+      } else {
+        buyBgShakhtarBtn.innerText = "Equip";
+        buyBgShakhtarBtn.disabled = false;
+        buyBgShakhtarBtn.classList.remove('equipped-status');
+      }
+    } else {
+      buyBgShakhtarBtn.innerText = `Buy (${costs.bgShakhtar} Pts)`;
+      buyBgShakhtarBtn.disabled = points < costs.bgShakhtar;
+      buyBgShakhtarBtn.classList.remove('equipped-status');
     }
   }
 
@@ -396,6 +429,7 @@ function startGame() {
   hasCrit = false;
   bgMoazUnlocked = false;
   bgGoatUnlocked = false;
+  bgShakhtarUnlocked = false;
   currentBg = 'default';
 
   if (buyMultiplierBtn) buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
@@ -417,6 +451,11 @@ function startGame() {
     buyBgGoatBtn.innerText = `Buy (${costs.bgGoat} Pts)`;
     buyBgGoatBtn.disabled = false;
     buyBgGoatBtn.classList.remove('equipped-status');
+  }
+  if (buyBgShakhtarBtn) {
+    buyBgShakhtarBtn.innerText = `Buy (${costs.bgShakhtar} Pts)`;
+    buyBgShakhtarBtn.disabled = false;
+    buyBgShakhtarBtn.classList.remove('equipped-status');
   }
 
   ownedGuns = [true, false, false, false, false, false, false, false];
