@@ -1,3 +1,16 @@
+const headNames = [
+  'Vladimir Putin 🇷🇺',       // 0
+  'Donald Trump 🇺🇸',       // 1
+  'Eduardo Bolsonaro 🇧🇷',  // 2
+  'Flávio Bolsonaro 🇧🇷',   // 3
+  'Jair Bolsonaro 🇧🇷',    // 4
+  'Ben Gvir 🇮🇱',           // 5
+  'Rupert Lowe 🇬🇧',         // 6
+  'Nigel Farage 🇬🇧',        // 7
+  'Benjamin Netanyahu 🇮🇱', // 8
+  'Moaz'                   // 9
+];
+
 const headImages = [
   'images/head1.png',  // 0: Putin
   'images/head2.png',  // 1: Trump
@@ -60,7 +73,11 @@ let hasCrit = false;
 let bgMoazUnlocked = false;
 let bgGoatUnlocked = false;
 let bgShakhtarUnlocked = false;
-let currentBg = 'default'; // 'default', 'moaz', 'goat', or 'shakhtar'
+let currentBg = 'default';
+
+// Level System
+let currentLevel = parseInt(localStorage.getItem('tactical_current_level') || '1', 10);
+let currentObjective = { type: 'score', targetScore: 100, targetPolitician: -1, requiredHits: 0, maxAllowedHits: 999 };
 
 let isGameActive = false;
 let isPaused = false;
@@ -72,9 +89,9 @@ let initialCosts = { multiplier: 50, time: 75, shield: 90, crit: 110, bgMoaz: 15
 let costs = { ...initialCosts };
 
 // DOM Elements
-let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
-let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn;
-let startScreen, shopModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice;
+let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, levelDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
+let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, closeSettingsBtn, resetLevelBtn;
+let startScreen, shopModal, settingsModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice, lobbyLevelInfo, objectiveText;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgMoazBtn, buyBgGoatBtn, buyBgShakhtarBtn;
 
@@ -83,6 +100,7 @@ window.addEventListener('DOMContentLoaded', () => {
   comboDisplay = document.getElementById('combo-display');
   multiplierDisplay = document.getElementById('multiplier-display');
   timeDisplay = document.getElementById('time-display');
+  levelDisplay = document.getElementById('level-display');
   gameArea = document.getElementById('game-area');
   muzzleFlash = document.getElementById('muzzle-flash');
   weaponGun = document.getElementById('weapon-gun');
@@ -92,14 +110,20 @@ window.addEventListener('DOMContentLoaded', () => {
   restartBtn = document.getElementById('restart-btn');
   shopToggleBtn = document.getElementById('shop-toggle-btn');
   closeShopBtn = document.getElementById('close-shop-btn');
+  settingsToggleBtn = document.getElementById('settings-toggle-btn');
+  closeSettingsBtn = document.getElementById('close-settings-btn');
+  resetLevelBtn = document.getElementById('reset-level-btn');
 
   startScreen = document.getElementById('start-screen');
   shopModal = document.getElementById('shop-modal');
+  settingsModal = document.getElementById('settings-modal');
   gameOverScreen = document.getElementById('game-over-screen');
   gameOverTitle = document.getElementById('game-over-title');
   finalScoreDisplay = document.getElementById('final-score');
   personalBestDisplay = document.getElementById('personal-best');
   shopStatusNotice = document.getElementById('shop-status-notice');
+  lobbyLevelInfo = document.getElementById('lobby-level-info');
+  objectiveText = document.getElementById('objective-text');
 
   tabUpgradesBtn = document.getElementById('tab-upgrades-btn');
   tabGunsBtn = document.getElementById('tab-guns-btn');
@@ -132,6 +156,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (shopToggleBtn) shopToggleBtn.addEventListener('click', openShop);
   if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
+
+  if (settingsToggleBtn) settingsToggleBtn.addEventListener('click', openSettings);
+  if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
+  if (resetLevelBtn) resetLevelBtn.addEventListener('click', resetProgress);
 
   for (let i = 0; i < 8; i++) {
     const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
@@ -247,8 +275,70 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  setupLevelObjectives();
   updateUI();
 });
+
+function setupLevelObjectives() {
+  let targetScore = 80 + (currentLevel * 35);
+  
+  if (currentLevel < 10) {
+    currentObjective = {
+      type: 'score',
+      targetScore: targetScore,
+      targetPolitician: -1,
+      requiredHits: 0,
+      maxAllowedHits: 999,
+      description: `Reach ${targetScore} Points to clear Level ${currentLevel}.`
+    };
+  } else if (currentLevel < 20) {
+    // Level 10-19: Score + hit target quotas
+    let politicianIndex = (currentLevel - 10) % headNames.length;
+    let requiredHits = 3 + Math.floor((currentLevel - 10) / 2);
+    currentObjective = {
+      type: 'quota_min',
+      targetScore: targetScore,
+      targetPolitician: politicianIndex,
+      requiredHits: requiredHits,
+      maxAllowedHits: 999,
+      description: `Reach ${targetScore} Pts AND hit ${headNames[politicianIndex]} at least ${requiredHits} times.`
+    };
+  } else {
+    // Level 20+: Score + exact max caps (over-hitting causes failure)
+    let politicianIndex = currentLevel % headNames.length;
+    let maxHits = 2 + (currentLevel % 3);
+    currentObjective = {
+      type: 'quota_cap',
+      targetScore: targetScore,
+      targetPolitician: politicianIndex,
+      requiredHits: 0,
+      maxAllowedHits: maxHits,
+      description: `Reach ${targetScore} Pts. WARNING: Do not hit ${headNames[politicianIndex]} more than ${maxHits} times!`
+    };
+  }
+
+  if (objectiveText) objectiveText.innerText = currentObjective.description;
+  if (lobbyLevelInfo) lobbyLevelInfo.innerText = `CURRENT DEPLOYMENT: LEVEL ${currentLevel}`;
+  if (levelDisplay) levelDisplay.innerText = currentLevel;
+}
+
+function openSettings() {
+  if (settingsModal) settingsModal.classList.remove('hidden');
+}
+
+function closeSettings() {
+  if (settingsModal) settingsModal.classList.add('hidden');
+}
+
+function resetProgress() {
+  if (confirm("Are you sure you want to reset all progress back to Level 1?")) {
+    currentLevel = 1;
+    localStorage.setItem('tactical_current_level', currentLevel);
+    setupLevelObjectives();
+    updateUI();
+    closeSettings();
+  }
+}
 
 function handleGunClick(gunIndex) {
   if (!isGameActive) return;
@@ -302,6 +392,7 @@ function updateUI() {
   if (comboDisplay) comboDisplay.innerText = `${combo}x`;
   if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
+  if (levelDisplay) levelDisplay.innerText = currentLevel;
 
   for (let i = 0; i < 10; i++) {
     const el = document.getElementById(`count-head${i}`);
@@ -326,7 +417,6 @@ function updateUI() {
     if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
     if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
 
-    // Background Moaz Button UI logic
     if (bgMoazUnlocked) {
       if (currentBg === 'moaz') {
         buyBgMoazBtn.innerText = "Equipped";
@@ -343,7 +433,6 @@ function updateUI() {
       buyBgMoazBtn.classList.remove('equipped-status');
     }
 
-    // Background Goat Button UI logic
     if (bgGoatUnlocked) {
       if (currentBg === 'goat') {
         buyBgGoatBtn.innerText = "Equipped";
@@ -360,7 +449,6 @@ function updateUI() {
       buyBgGoatBtn.classList.remove('equipped-status');
     }
 
-    // Background Shakhtar Button UI logic
     if (bgShakhtarUnlocked) {
       if (currentBg === 'shakhtar') {
         buyBgShakhtarBtn.innerText = "Equipped";
@@ -408,7 +496,7 @@ function resumeTimers() {
   gameTimer = setInterval(() => {
     remainingTime--;
     if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
-    if (remainingTime <= 0) endGame("ROUND COMPLETE");
+    if (remainingTime <= 0) checkLevelCompletion();
   }, 1000);
 
   spawnInterval = setInterval(() => spawnEntity(), 750);
@@ -467,14 +555,66 @@ function startGame() {
 
   if (gameArea) gameArea.style.backgroundImage = "";
 
+  setupLevelObjectives();
   updateUI();
 
   if (startScreen) startScreen.classList.add('hidden');
   if (shopModal) shopModal.classList.add('hidden');
+  if (settingsModal) settingsModal.classList.add('hidden');
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
 
   clearEntities();
   resumeTimers();
+}
+
+function checkLevelCompletion() {
+  isGameActive = false;
+  isPaused = false;
+  clearInterval(gameTimer);
+  clearInterval(spawnInterval);
+  if (moveInterval) clearInterval(moveInterval);
+  clearEntities();
+
+  let passed = true;
+  let failReason = "";
+
+  if (points < currentObjective.targetScore) {
+    passed = false;
+    failReason = `FAILED: Need ${currentObjective.targetScore} Pts (Got ${points})`;
+  } else if (currentObjective.type === 'quota_min') {
+    let hits = hitCounts.head[currentObjective.targetPolitician];
+    if (hits < currentObjective.requiredHits) {
+      passed = false;
+      failReason = `FAILED: Needed ${currentObjective.requiredHits} hits on ${headNames[currentObjective.targetPolitician]} (Got ${hits})`;
+    }
+  } else if (currentObjective.type === 'quota_cap') {
+    let hits = hitCounts.head[currentObjective.targetPolitician];
+    if (hits > currentObjective.maxAllowedHits) {
+      passed = false;
+      failReason = `FAILED: Exceeded max allowed hits on ${headNames[currentObjective.targetPolitician]} (${hits}/${currentObjective.maxAllowedHits})`;
+    }
+  }
+
+  let personalBest = parseInt(localStorage.getItem('tactical_high_score') || '0', 10);
+  if (points > personalBest) {
+    personalBest = points;
+    localStorage.setItem('tactical_high_score', personalBest);
+  }
+
+  if (passed) {
+    if (gameOverTitle) gameOverTitle.innerText = `LEVEL ${currentLevel} CLEARED!`;
+    if (restartBtn) restartBtn.innerText = "NEXT LEVEL";
+    currentLevel++;
+    localStorage.setItem('tactical_current_level', currentLevel);
+  } else {
+    if (gameOverTitle) gameOverTitle.innerText = failReason;
+    if (restartBtn) restartBtn.innerText = "RETRY LEVEL";
+  }
+
+  if (finalScoreDisplay) finalScoreDisplay.innerText = points;
+  if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
+  if (gameOverScreen) gameOverScreen.classList.remove('hidden');
+  setupLevelObjectives();
 }
 
 function triggerGunshotFX(x, y) {
@@ -670,6 +810,20 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
   if (isCrit) hitPoints *= 3;
 
   points += hitPoints;
+
+  // Check Level 20+ max-hit cap instantly mid-game
+  if (currentObjective.type === 'quota_cap' && headIndex === currentObjective.targetPolitician) {
+    if (hitCounts.head[headIndex] > currentObjective.maxAllowedHits) {
+      updateUI();
+      triggerGunshotFX(clientX, clientY);
+      setTimeout(() => {
+        if (target.parentNode) target.remove();
+        endGame();
+      }, 200);
+      return;
+    }
+  }
+
   updateUI();
 
   triggerGunshotFX(clientX, clientY);
@@ -696,7 +850,7 @@ function hitPenaltyHead(target, clientX, clientY) {
 
   setTimeout(() => {
     if (target.parentNode) target.remove();
-    endGame("GAME OVER BITCH, DON’Т SHOOT ME");
+    endGame();
   }, 200);
 }
 
@@ -767,7 +921,7 @@ function clearEntities() {
   entities.forEach(e => e.remove());
 }
 
-function endGame(titleText = "ROUND COMPLETE") {
+function endGame() {
   isGameActive = false;
   isPaused = false;
   clearInterval(gameTimer);
@@ -781,7 +935,8 @@ function endGame(titleText = "ROUND COMPLETE") {
     localStorage.setItem('tactical_high_score', personalBest);
   }
 
-  if (gameOverTitle) gameOverTitle.innerText = titleText;
+  if (gameOverTitle) gameOverTitle.innerText = `LEVEL ${currentLevel} FAILED`;
+  if (restartBtn) restartBtn.innerText = "RETRY LEVEL";
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
   if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
