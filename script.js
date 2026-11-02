@@ -49,7 +49,10 @@ const moazSound = new Audio('audio/moaz.mp3');
 
 const allSounds = [gunshotSound, bombSound, israelSound, russiaSound, moazSound];
 
+let isAudioEnabled = localStorage.getItem('tactical_audio') !== 'false';
+
 function playCustomAudio(audioObj) {
+  if (!isAudioEnabled) return;
   allSounds.forEach(sound => {
     sound.pause();
     sound.currentTime = 0;
@@ -113,6 +116,10 @@ const translations = {
     settingsTitle: "SETTINGS & PROGRESS",
     langHeader: "Language",
     langDesc: "Choose your preferred language:",
+    audioHeader: "Volume / Audio",
+    audioDesc: "Toggle sound effects on or off.",
+    soundOn: "SOUND: ON",
+    soundOff: "SOUND: OFF",
     modeHeader: "Game Mode",
     modeLevels: "Current: Levels Mode",
     modeFreeplay: "Current: Freeplay Mode (No Levels)",
@@ -185,6 +192,10 @@ const translations = {
     settingsTitle: "НАЛАШТУВАННЯ ТА ПРОГРЕС",
     langHeader: "Мова",
     langDesc: "Оберіть мову гри:",
+    audioHeader: "Гучність / Звук",
+    audioDesc: "Увімкнути або вимкнути звукові ефекти.",
+    soundOn: "ЗВУК: УВІМК.",
+    soundOff: "ЗВУК: ВИМК.",
     modeHeader: "Режим гри",
     modeLevels: "Поточний: Рівні",
     modeFreeplay: "Поточний: Вільна гра",
@@ -257,6 +268,10 @@ const translations = {
     settingsTitle: "CONFIGURAÇÕES E PROGRESSO",
     langHeader: "Idioma",
     langDesc: "Escolha seu idioma preferido:",
+    audioHeader: "Volume / Áudio",
+    audioDesc: "Ativar ou desativar efeitos sonoros.",
+    soundOn: "SOM: LIGADO",
+    soundOff: "SOM: DESLIGADO",
     modeHeader: "Modo de Jogo",
     modeLevels: "Atual: Modo Níveis",
     modeFreeplay: "Atual: Jogo Livre (Sem Níveis)",
@@ -329,6 +344,10 @@ const translations = {
     settingsTitle: "الإعدادات والتقدم",
     langHeader: "اللغة",
     langDesc: "اختر لغتك المفضلة:",
+    audioHeader: "مستوى الصوت / الصوت",
+    audioDesc: "تشغيل أو إيقاف المؤثرات الصوتية.",
+    soundOn: "الصوت: تشغيل",
+    soundOff: "الصوت: إيقاف",
     modeHeader: "وضع اللعب",
     modeLevels: "الحالي: وضع المستويات",
     modeFreeplay: "الحالي: اللعب الحر (بدون مستويات)",
@@ -386,7 +405,7 @@ const translations = {
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, levelDisplay, hudLevelBox, gameArea, muzzleFlash, weaponGun, currentGunImg;
-let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, closeSettingsBtn, resetLevelBtn, toggleGamemodeBtn;
+let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, closeSettingsBtn, resetLevelBtn, toggleGamemodeBtn, toggleAudioBtn;
 let startScreen, shopModal, settingsModal, tutorialModal, closeTutorialBtn, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice, lobbyLevelInfo, objectiveText, gamemodeDesc;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyLaserBtn, buyAdrenalineBtn, buyBgMoazBtn, buyBgGoatBtn, buyBgShakhtarBtn;
@@ -412,6 +431,7 @@ window.addEventListener('DOMContentLoaded', () => {
   closeSettingsBtn = document.getElementById('close-settings-btn');
   resetLevelBtn = document.getElementById('reset-level-btn');
   toggleGamemodeBtn = document.getElementById('toggle-gamemode-btn');
+  toggleAudioBtn = document.getElementById('toggle-audio-btn');
 
   startScreen = document.getElementById('start-screen');
   shopModal = document.getElementById('shop-modal');
@@ -481,6 +501,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
   if (resetLevelBtn) resetLevelBtn.addEventListener('click', resetProgress);
   if (toggleGamemodeBtn) toggleGamemodeBtn.addEventListener('click', toggleGameMode);
+  if (toggleAudioBtn) toggleAudioBtn.addEventListener('click', toggleAudio);
 
   if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
   if (langUkBtn) langUkBtn.addEventListener('click', () => setLanguage('uk'));
@@ -627,6 +648,7 @@ window.addEventListener('DOMContentLoaded', () => {
   applyLocalization();
   setupLevelObjectives();
   updateGameModeUI();
+  updateAudioUI();
   updateUI();
 });
 
@@ -640,6 +662,7 @@ function setLanguage(langCode) {
   applyLocalization();
   setupLevelObjectives();
   updateGameModeUI();
+  updateAudioUI();
   updateUI();
 }
 
@@ -662,6 +685,8 @@ function applyLocalization() {
   document.getElementById('txt-settings-title').innerText = t('settingsTitle');
   document.getElementById('txt-lang-header').innerText = t('langHeader');
   document.getElementById('txt-lang-desc').innerText = t('langDesc');
+  document.getElementById('txt-audio-header').innerText = t('audioHeader');
+  document.getElementById('txt-audio-desc').innerText = t('audioDesc');
   document.getElementById('txt-mode-header').innerText = t('modeHeader');
   document.getElementById('txt-prog-header').innerText = t('progHeader');
   document.getElementById('txt-prog-desc').innerText = t('progDesc');
@@ -702,6 +727,8 @@ function applyLocalization() {
   if (currentLang === 'uk' && langUkBtn) langUkBtn.style.border = "2px solid #00ffcc";
   if (currentLang === 'pt' && langPtBtn) langPtBtn.style.border = "2px solid #00ffcc";
   if (currentLang === 'ar' && langArBtn) langArBtn.style.border = "2px solid #00ffcc";
+
+  updateAudioUI();
 }
 
 function setupLevelObjectives() {
@@ -775,6 +802,7 @@ function openSettings() {
     if (moveInterval) clearInterval(moveInterval);
   }
   updateGameModeUI();
+  updateAudioUI();
   if (settingsModal) settingsModal.classList.remove('hidden');
 }
 
@@ -819,6 +847,20 @@ function toggleGameMode() {
   setupLevelObjectives();
   updateGameModeUI();
   updateUI();
+}
+
+function toggleAudio() {
+  isAudioEnabled = !isAudioEnabled;
+  localStorage.setItem('tactical_audio', isAudioEnabled);
+  updateAudioUI();
+}
+
+function updateAudioUI() {
+  if (toggleAudioBtn) {
+    toggleAudioBtn.innerText = isAudioEnabled ? t('soundOn') : t('soundOff');
+    toggleAudioBtn.style.backgroundColor = isAudioEnabled ? "#00ffcc" : "#ff0055";
+    toggleAudioBtn.style.color = isAudioEnabled ? "#08090c" : "#ffffff";
+  }
 }
 
 function updateGameModeUI() {
@@ -1041,6 +1083,7 @@ function startGame() {
 
   setupLevelObjectives();
   updateGameModeUI();
+  updateAudioUI();
   updateUI();
 
   if (startScreen) startScreen.classList.add('hidden');
@@ -1371,7 +1414,7 @@ function hitPenaltyHead(target, clientX, clientY) {
   target.classList.add('shot');
   combo = 0;
   playCustomAudio(bombSound);
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  if (isAudioEnabled && navigator.vibrate) navigator.vibrate([200, 100, 200]);
 
   triggerGunshotFX(clientX, clientY);
   gameArea.classList.remove('danger-flash');
@@ -1419,7 +1462,7 @@ function hitBomb(bomb, clientX, clientY) {
   }
 
   playCustomAudio(bombSound);
-  if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
+  if (isAudioEnabled && navigator.vibrate) navigator.vibrate([150, 50, 150]);
 
   points = 0;
   hitCounts.head = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
