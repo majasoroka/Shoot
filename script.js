@@ -795,6 +795,9 @@ function setupLevelObjectives() {
 }
 
 function openSettings() {
+  // Automatically close Upgrades if open
+  if (shopModal) shopModal.classList.add('hidden');
+
   if (isGameActive) {
     isPaused = true;
     clearInterval(gameTimer);
@@ -1009,6 +1012,9 @@ function updateUI() {
 }
 
 function openShop() {
+  // Automatically close Settings if open
+  if (settingsModal) settingsModal.classList.add('hidden');
+
   if (isGameActive) {
     isPaused = true;
     clearInterval(gameTimer);
@@ -1193,7 +1199,7 @@ function checkLevelCompletion() {
 }
 
 function triggerGunshotFX(x, y) {
-  if (navigator.vibrate) navigator.vibrate(35);
+  if (isAudioEnabled && navigator.vibrate) navigator.vibrate(35);
 
   if (gameArea) {
     gameArea.classList.remove('recoil');
