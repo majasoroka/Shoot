@@ -100,6 +100,7 @@ const translations = {
   en: {
     level: "LEVEL",
     score: "SCORE",
+    combo: "COMBO",
     time: "TIME",
     upgradesBtn: "UPGRADES",
     startBtn: "START",
@@ -176,6 +177,7 @@ const translations = {
   uk: {
     level: "РІВЕНЬ",
     score: "РАХУНОК",
+    combo: "КОМБО",
     time: "ЧАС",
     upgradesBtn: "ПОКРАЩЕННЯ",
     startBtn: "ПОЧАТИ",
@@ -244,7 +246,7 @@ const translations = {
     gun1Name: "Компактний пістолет", gun1Desc: "Покращена",
     gun2Name: "Тактичний карабін", gun2Desc: "Середня гвинтівка",
     gun3Name: "Голографічний ПП", gun3Desc: "Швидкострільна",
-    gun4Name: "Важкий штурмовик", gun4Desc: "Важке озброєння",
+    gun4Name: "Важкий штурмовик", gun4Desc: "Важке озборєння",
     gun5Name: "Кіберпанк гвинтівка", gun5Desc: "Футуристична",
     gun6Name: "Елітний снайпер", gun6Desc: "Висока точність",
     gun7Name: "Важкий РПГ", gun7Desc: "Найдорожча"
@@ -252,6 +254,7 @@ const translations = {
   pt: {
     level: "NÍVEL",
     score: "PONTOS",
+    combo: "COMBO",
     time: "TEMPO",
     upgradesBtn: "MELHORIAS",
     startBtn: "INICIAR",
@@ -328,6 +331,7 @@ const translations = {
   ar: {
     level: "المستوى",
     score: "النقاط",
+    combo: "كومبو",
     time: "الوقت",
     upgradesBtn: "الترقيات",
     startBtn: "ابدأ",
@@ -398,7 +402,7 @@ const translations = {
     gun3Name: "رشاش هولوغرافي", gun3Desc: "سرعة إطلاق عالية",
     gun4Name: "مهاجم ثقيل", gun4Desc: "خدمة شاقة",
     gun5Name: "بندقية سيبربانك", gun5Desc: "تكنولوجيا مستقبلية",
-    gun6Name: "قناص متقدم", gun6Desc: "دقة فائقة",
+    gun6Name: "قناص متتقدم", gun6Desc: "دقة فائقة",
     gun7Name: "آر بي جي ثقيل", gun7Desc: "الأغلى سعراً"
   }
 };
@@ -669,6 +673,7 @@ function setLanguage(langCode) {
 function applyLocalization() {
   document.getElementById('lbl-level').innerText = t('level');
   document.getElementById('lbl-score').innerText = t('score');
+  document.getElementById('lbl-combo').innerText = t('combo');
   document.getElementById('lbl-time').innerText = t('time');
   document.getElementById('shop-toggle-btn').innerText = t('upgradesBtn');
   document.getElementById('start-btn').innerText = t('startBtn');
@@ -926,7 +931,6 @@ function updateGunShopUI() {
 function updateUI() {
   if (pointsDisplay) pointsDisplay.innerText = points;
   if (comboDisplay) comboDisplay.innerText = `${combo}x`;
-  if (multiplierDisplay) multiplierDisplay.innerText = `${pointsMultiplier}x`;
   if (timeDisplay) timeDisplay.innerText = `${remainingTime}s`;
   if (levelDisplay) levelDisplay.innerText = currentLevel;
 
@@ -1324,10 +1328,8 @@ function spawnEntity(forceBombCheck = true) {
     setTimeout(() => { if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) flag.remove(); }, headLingerTime);
 
   } else {
-    // --- BOOSTED POLITICIAN SPAWN LOGIC ---
     let headIndex;
     if (currentObjective.type === 'quota_min' && Math.random() < 0.65) {
-      // 65% chance to force-spawn the required quota target if quota_min is active
       headIndex = currentObjective.targetPolitician;
     } else {
       headIndex = Math.floor(Math.random() * headImages.length);
