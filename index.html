@@ -11,7 +11,7 @@
   <div class="game-container">
     <!-- Header / HUD -->
     <header class="hud">
-      <div class="stat-box">
+      <div class="stat-box" id="hud-level-box">
         <span class="label">LEVEL</span>
         <span id="level-display" class="val">1</span>
       </div>
@@ -51,6 +51,14 @@
       <!-- Settings Modal Overlay -->
       <div id="settings-modal" class="overlay hidden">
         <h2>SETTINGS & PROGRESS</h2>
+        <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="card-info">
+            <h3>Game Mode</h3>
+            <p id="gamemode-desc">Current: Levels Mode</p>
+          </div>
+          <button id="toggle-gamemode-btn" class="buy-btn" style="background-color: #00ffcc; color: #08090c; width: 100%;">SWITCH TO FREEPLAY</button>
+        </div>
+
         <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 8px;">
           <div class="card-info">
             <h3>Progress Management</h3>
