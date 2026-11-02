@@ -246,7 +246,7 @@ const translations = {
     gun1Name: "Компактний пістолет", gun1Desc: "Покращена",
     gun2Name: "Тактичний карабін", gun2Desc: "Середня гвинтівка",
     gun3Name: "Голографічний ПП", gun3Desc: "Швидкострільна",
-    gun4Name: "Важкий штурмовик", gun4Desc: "Важке озборєння",
+    gun4Name: "Важкий штурмовик", gun4Desc: "Важке озброєння",
     gun5Name: "Кіберпанк гвинтівка", gun5Desc: "Футуристична",
     gun6Name: "Елітний снайпер", gun6Desc: "Висока точність",
     gun7Name: "Важкий РПГ", gun7Desc: "Найдорожча"
@@ -402,7 +402,7 @@ const translations = {
     gun3Name: "رشاش هولوغرافي", gun3Desc: "سرعة إطلاق عالية",
     gun4Name: "مهاجم ثقيل", gun4Desc: "خدمة شاقة",
     gun5Name: "بندقية سيبربانك", gun5Desc: "تكنولوجيا مستقبلية",
-    gun6Name: "قناص متتقدم", gun6Desc: "دقة فائقة",
+    gun6Name: "قناص متقدم", gun6Desc: "دقة فائقة",
     gun7Name: "آر بي جي ثقيل", gun7Desc: "الأغلى سعراً"
   }
 };
@@ -763,7 +763,8 @@ function setupLevelObjectives() {
 
   if (currentLevel % 5 === 0) {
     let politicianIndex = (currentLevel / 5) % headNames.length;
-    let requiredHits = 5 + (currentLevel * 2);
+    // Capped required hits at a maximum of 10
+    let requiredHits = Math.min(10, 5 + Math.floor(currentLevel / 2));
     currentObjective = {
       type: 'quota_min',
       targetScore: targetScore,
@@ -1328,8 +1329,9 @@ function spawnEntity(forceBombCheck = true) {
     setTimeout(() => { if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) flag.remove(); }, headLingerTime);
 
   } else {
+    // --- SUPER BOOSTED POLITICIAN SPAWN LOGIC (80% chance) ---
     let headIndex;
-    if (currentObjective.type === 'quota_min' && Math.random() < 0.65) {
+    if (currentObjective.type === 'quota_min' && Math.random() < 0.80) {
       headIndex = currentObjective.targetPolitician;
     } else {
       headIndex = Math.floor(Math.random() * headImages.length);
