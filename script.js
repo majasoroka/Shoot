@@ -90,7 +90,7 @@ let costs = { ...initialCosts };
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, levelDisplay, gameArea, muzzleFlash, weaponGun, currentGunImg;
-let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, closeSettingsBtn, resetLevelBtn;
+let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, lobbySettingsBtn, closeSettingsBtn, resetLevelBtn;
 let startScreen, shopModal, settingsModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice, lobbyLevelInfo, objectiveText;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
 let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgMoazBtn, buyBgGoatBtn, buyBgShakhtarBtn;
@@ -111,6 +111,7 @@ window.addEventListener('DOMContentLoaded', () => {
   shopToggleBtn = document.getElementById('shop-toggle-btn');
   closeShopBtn = document.getElementById('close-shop-btn');
   settingsToggleBtn = document.getElementById('settings-toggle-btn');
+  lobbySettingsBtn = document.getElementById('lobby-settings-btn');
   closeSettingsBtn = document.getElementById('close-settings-btn');
   resetLevelBtn = document.getElementById('reset-level-btn');
 
@@ -158,6 +159,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 
   if (settingsToggleBtn) settingsToggleBtn.addEventListener('click', openSettings);
+  if (lobbySettingsBtn) lobbySettingsBtn.addEventListener('click', openSettings);
   if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
   if (resetLevelBtn) resetLevelBtn.addEventListener('click', resetProgress);
 
@@ -292,7 +294,6 @@ function setupLevelObjectives() {
       description: `Reach ${targetScore} Points to clear Level ${currentLevel}.`
     };
   } else if (currentLevel < 20) {
-    // Level 10-19: Score + hit target quotas
     let politicianIndex = (currentLevel - 10) % headNames.length;
     let requiredHits = 3 + Math.floor((currentLevel - 10) / 2);
     currentObjective = {
@@ -304,7 +305,6 @@ function setupLevelObjectives() {
       description: `Reach ${targetScore} Pts AND hit ${headNames[politicianIndex]} at least ${requiredHits} times.`
     };
   } else {
-    // Level 20+: Score + exact max caps (over-hitting causes failure)
     let politicianIndex = currentLevel % headNames.length;
     let maxHits = 2 + (currentLevel % 3);
     currentObjective = {
@@ -323,11 +323,21 @@ function setupLevelObjectives() {
 }
 
 function openSettings() {
+  if (isGameActive) {
+    isPaused = true;
+    clearInterval(gameTimer);
+    clearInterval(spawnInterval);
+    if (moveInterval) clearInterval(moveInterval);
+  }
   if (settingsModal) settingsModal.classList.remove('hidden');
 }
 
 function closeSettings() {
   if (settingsModal) settingsModal.classList.add('hidden');
+  if (isGameActive) {
+    isPaused = false;
+    resumeTimers();
+  }
 }
 
 function resetProgress() {
@@ -811,7 +821,6 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
 
   points += hitPoints;
 
-  // Check Level 20+ max-hit cap instantly mid-game
   if (currentObjective.type === 'quota_cap' && headIndex === currentObjective.targetPolitician) {
     if (hitCounts.head[headIndex] > currentObjective.maxAllowedHits) {
       updateUI();
