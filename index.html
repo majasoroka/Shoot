@@ -12,15 +12,15 @@
     <!-- Header / HUD -->
     <header class="hud">
       <div class="stat-box" id="hud-level-box">
-        <span class="label">LEVEL</span>
+        <span class="label" id="lbl-level">LEVEL</span>
         <span id="level-display" class="val">1</span>
       </div>
       <div class="stat-box">
-        <span class="label">SCORE</span>
+        <span class="label" id="lbl-score">SCORE</span>
         <span id="points-display" class="val">0</span>
       </div>
       <div class="stat-box">
-        <span class="label">TIME</span>
+        <span class="label" id="lbl-time">TIME</span>
         <span id="time-display" class="val">30s</span>
       </div>
       <button id="shop-toggle-btn" class="glow-btn alt">UPGRADES</button>
@@ -39,39 +39,66 @@
 
       <!-- Start Screen Overlay -->
       <div id="start-screen" class="overlay">
-        <h2>TACTICAL HEADSHOT RANGE</h2>
+        <h2 id="txt-lobby-title">TACTICAL HEADSHOT RANGE</h2>
         <p id="lobby-level-info" class="sub-hint" style="color: #00ffcc; font-size: 0.9rem; font-weight: bold;">CURRENT DEPLOYMENT: LEVEL 1</p>
         <p class="sub-hint">FUCK ISRAEL • FUCK TRUMP • FUCK RUSSIA • الحرية لفلسطين • СЛАВА УКРАЇНІ</p>
-        <div style="display: flex; gap: 10px; width: 100%;">
-          <button id="lobby-settings-btn" class="glow-btn alt" style="padding: 12px; font-size: 1.1rem;">⚙️</button>
-          <button id="main-start-btn" class="glow-btn large" style="flex: 1;">DEPLOY TO RANGE</button>
+        <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
+      </div>
+
+      <!-- Tutorial / How to Play Overlay -->
+      <div id="tutorial-modal" class="overlay hidden">
+        <h2 id="txt-tut-title">HOW TO PLAY</h2>
+        <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 6px; background: rgba(0,255,204,0.05);">
+          <p id="txt-tut-1" style="font-size: 0.78rem; color: #fff; line-height: 1.4;">🎯 <b>Targets:</b> Tap/shoot enemy politicians and flags to rack up points and build combos.</p>
+          <p id="txt-tut-2" style="font-size: 0.78rem; color: #fff; line-height: 1.4;">📋 <b>Level Objectives:</b> Meet the score or hit quotas before the timer runs out to instantly clear the level and advance!</p>
+          <p id="txt-tut-3" style="font-size: 0.78rem; color: #fff; line-height: 1.4;">⚠️ <b>Warnings:</b> Avoid shooting civilians or hitting active bombs, or your stats will wipe!</p>
+          <p id="txt-tut-4" style="font-size: 0.78rem; color: #fff; line-height: 1.4;">⚡ <b>Armory:</b> Spend points in Upgrades & Guns to unlock powerful boosts and background themes.</p>
         </div>
+        <button id="close-tutorial-btn" class="glow-btn large" style="margin-top: 10px;">GOT IT, LET'S SHOOT</button>
       </div>
 
       <!-- Settings Modal Overlay -->
       <div id="settings-modal" class="overlay hidden">
-        <h2>SETTINGS & PROGRESS</h2>
+        <h2 id="txt-settings-title">SETTINGS & PROGRESS</h2>
+        
+        <!-- Language Selector -->
         <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 8px;">
           <div class="card-info">
-            <h3>Game Mode</h3>
+            <h3 id="txt-lang-header">Language / Мова / Idioma / اللغة</h3>
+            <p id="txt-lang-desc">Choose your preferred language:</p>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%;">
+            <button id="lang-en-btn" class="buy-btn" style="background: #1f2c3e; color: #00ffcc;">English</button>
+            <button id="lang-uk-btn" class="buy-btn" style="background: #1f2c3e; color: #00ffcc;">Українська</button>
+            <button id="lang-pt-btn" class="buy-btn" style="background: #1f2c3e; color: #00ffcc;">Português</button>
+            <button id="lang-ar-btn" class="buy-btn" style="background: #1f2c3e; color: #00ffcc;">العامية المصرية</button>
+          </div>
+        </div>
+
+        <!-- Game Mode -->
+        <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="card-info">
+            <h3 id="txt-mode-header">Game Mode</h3>
             <p id="gamemode-desc">Current: Levels Mode</p>
           </div>
           <button id="toggle-gamemode-btn" class="buy-btn" style="background-color: #00ffcc; color: #08090c; width: 100%;">SWITCH TO FREEPLAY</button>
         </div>
 
+        <!-- Progress Reset -->
         <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 8px;">
           <div class="card-info">
-            <h3>Progress Management</h3>
-            <p>Reset all saved progress and start back from Level 1.</p>
+            <h3 id="txt-prog-header">Progress Management</h3>
+            <p id="txt-prog-desc">Reset level back to Level 1 (Keeps points & upgrades).</p>
           </div>
-          <button id="reset-level-btn" class="buy-btn" style="background-color: #ff0055; color: #fff; width: 100%;">RESET TO LEVEL 1</button>
+          <button id="reset-level-btn" class="buy-btn" style="background-color: #ff0055; color: #fff; width: 100%;">RESET LEVEL TO 1</button>
         </div>
+        
         <button id="close-settings-btn" class="glow-btn large" style="margin-top: 10px;">BACK</button>
       </div>
 
       <!-- Armory & Intel Modal Overlay -->
       <div id="shop-modal" class="overlay hidden">
-        <h2>ARMORY & INTEL</h2>
+        <h2 id="txt-shop-title">ARMORY & INTEL</h2>
         <p id="shop-status-notice" class="pause-notice">⏸️ GAME PAUSED</p>
         
         <div class="shop-tabs">
@@ -83,56 +110,72 @@
         <div id="section-upgrades" class="shop-grid">
           <div class="shop-card">
             <div class="card-info">
-              <h3>Double Multiplier</h3>
-              <p>Doubles score payout per hit.</p>
+              <h3 id="upg-name-mult">Double Multiplier</h3>
+              <p id="upg-desc-mult">Doubles score payout per hit.</p>
             </div>
             <button id="buy-multiplier" class="buy-btn">Buy (50 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Extra Time (+10s)</h3>
-              <p>Adds +10s to active round timer.</p>
+              <h3 id="upg-name-time">Extra Time (+10s)</h3>
+              <p id="upg-desc-time">Adds +10s to active round timer.</p>
             </div>
             <button id="buy-time" class="buy-btn">Buy (75 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Bomb Shield</h3>
-              <p>Blocks 1 accidental bomb explosion.</p>
+              <h3 id="upg-name-shield">Bomb Shield</h3>
+              <p id="upg-desc-shield">Blocks 1 accidental bomb explosion.</p>
             </div>
             <button id="buy-shield" class="buy-btn">Buy (90 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Critical Strike</h3>
-              <p>25% chance for 3x critical point hits.</p>
+              <h3 id="upg-name-crit">Critical Strike</h3>
+              <p id="upg-desc-crit">25% chance for 3x critical point hits.</p>
             </div>
             <button id="buy-crit" class="buy-btn">Buy (110 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Background of Moaz</h3>
-              <p>Changes arena background to Moaz.</p>
+              <h3 id="upg-name-drone">Auto-Sniper Drone</h3>
+              <p id="upg-desc-drone">Automatically picks off random targets periodically.</p>
+            </div>
+            <button id="buy-drone" class="buy-btn">Buy (200 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3 id="upg-name-frenzy">Score Frenzy</h3>
+              <p id="upg-desc-frenzy">Instantly grants +500 bonus points.</p>
+            </div>
+            <button id="buy-frenzy" class="buy-btn">Buy (350 Pts)</button>
+          </div>
+
+          <div class="shop-card">
+            <div class="card-info">
+              <h3 id="upg-name-moaz">Background of Moaz</h3>
+              <p id="upg-desc-moaz">Changes arena background to Moaz.</p>
             </div>
             <button id="buy-bg-moaz" class="buy-btn">Buy (150 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Background of the goat</h3>
-              <p>Changes arena background to the best person in history.</p>
+              <h3 id="upg-name-goat">Background of the goat</h3>
+              <p id="upg-desc-goat">Changes arena background to the best person in history.</p>
             </div>
             <button id="buy-bg-goat" class="buy-btn">Buy (300 Pts)</button>
           </div>
 
           <div class="shop-card">
             <div class="card-info">
-              <h3>Shakhtar Background</h3>
-              <p>Changes arena background to FC Shakhtar Donetsk.</p>
+              <h3 id="upg-name-shakhtar">Shakhtar Background</h3>
+              <p id="upg-desc-shakhtar">Changes arena background to FC Shakhtar Donetsk.</p>
             </div>
             <button id="buy-bg-shakhtar" class="buy-btn">Buy (450 Pts)</button>
           </div>
@@ -142,64 +185,64 @@
         <div id="section-guns" class="shop-grid hidden">
           <div class="shop-card gun-card" data-gun-id="0">
             <div class="card-info">
-              <h3>Standard Pistol</h3>
-              <p>Owned (Starter)</p>
+              <h3 id="gun-name-0">Standard Pistol</h3>
+              <p id="gun-desc-0">Owned (Starter)</p>
             </div>
             <button id="equip-gun-0" class="buy-btn equipped-status" disabled>Equipped</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="1">
             <div class="card-info">
-              <h3>Compact Sidearm</h3>
-              <p>Upgraded Sidearm</p>
+              <h3 id="gun-name-1">Compact Sidearm</h3>
+              <p id="gun-desc-1">Upgraded Sidearm</p>
             </div>
             <button id="gun-btn-1" class="buy-btn">Buy (5,000 Pts)</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="2">
             <div class="card-info">
-              <h3>Tactical Carbine</h3>
-              <p>Mid-tier Rifle</p>
+              <h3 id="gun-name-2">Tactical Carbine</h3>
+              <p id="gun-desc-2">Mid-tier Rifle</p>
             </div>
             <button id="gun-btn-2" class="buy-btn">Buy (15,000 Pts)</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="3">
             <div class="card-info">
-              <h3>Holographic SMG</h3>
-              <p>High-rate Fire</p>
+              <h3 id="gun-name-3">Holographic SMG</h3>
+              <p id="gun-desc-3">High-rate Fire</p>
             </div>
             <button id="gun-btn-3" class="buy-btn">Buy (35,000 Pts)</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="4">
             <div class="card-info">
-              <h3>Heavy Assaulter</h3>
-              <p>Heavy Duty</p>
+              <h3 id="gun-name-4">Heavy Assaulter</h3>
+              <p id="gun-desc-4">Heavy Duty</p>
             </div>
             <button id="gun-btn-4" class="buy-btn">Buy (70,000 Pts)</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="5">
             <div class="card-info">
-              <h3>Cyberpunk Rifle</h3>
-              <p>Futuristic Tech</p>
+              <h3 id="gun-name-5">Cyberpunk Rifle</h3>
+              <p id="gun-desc-5">Futuristic Tech</p>
             </div>
             <button id="gun-btn-5" class="buy-btn">Buy (120,000 Pts)</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="6">
             <div class="card-info">
-              <h3>Advanced Marksman</h3>
-              <p>Elite Precision</p>
+              <h3 id="gun-name-6">Advanced Marksman</h3>
+              <p id="gun-desc-6">Elite Precision</p>
             </div>
             <button id="gun-btn-6" class="buy-btn">Buy (180,000 Pts)</button>
           </div>
 
           <div class="shop-card gun-card" data-gun-id="7">
             <div class="card-info">
-              <h3>Heavy RPG</h3>
-              <p>Most Expensive</p>
+              <h3 id="gun-name-7">Heavy RPG</h3>
+              <p id="gun-desc-7">Most Expensive</p>
             </div>
             <button id="gun-btn-7" class="buy-btn">Buy (250,000 Pts)</button>
           </div>
@@ -208,11 +251,11 @@
         <button id="close-shop-btn" class="glow-btn large">RESUME GAME</button>
       </div>
 
-      <!-- Game Over Overlay -->
+      <!-- Game Over / Victory Overlay -->
       <div id="game-over-screen" class="overlay hidden">
         <h2 id="game-over-title">ROUND COMPLETE</h2>
-        <p class="final-score-text">SCORE: <span id="final-score">0</span></p>
-        <p class="high-score-text">PERSONAL BEST: <span id="personal-best">0</span></p>
+        <p class="final-score-text"><span id="lbl-final-score">SCORE</span>: <span id="final-score">0</span></p>
+        <p class="high-score-text"><span id="lbl-best-score">PERSONAL BEST</span>: <span id="personal-best">0</span></p>
         <button id="restart-btn" class="glow-btn large">NEXT LEVEL</button>
       </div>
     </main>
@@ -226,11 +269,11 @@
     <section class="stats-tracker">
       <!-- Objectives Box -->
       <div id="objectives-box" style="background: rgba(0, 255, 204, 0.08); border: 1px solid #00ffcc; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;">
-        <h3 style="color: #00ffcc; font-size: 0.85rem; margin-bottom: 4px;">📋 LEVEL OBJECTIVES</h3>
+        <h3 id="txt-obj-header" style="color: #00ffcc; font-size: 0.85rem; margin-bottom: 4px;">📋 LEVEL OBJECTIVES</h3>
         <p id="objective-text" style="font-size: 0.78rem; color: #fff; line-height: 1.3;">Reach target score to clear level.</p>
       </div>
 
-      <h3>🎯 Target Hit Tracker</h3>
+      <h3 id="txt-tracker-header">🎯 Target Hit Tracker</h3>
       <ul id="tracker-list">
         <li>Vladimir Putin 🇷🇺: <span id="count-head0">0</span></li>
         <li>Donald Trump 🇺🇸: <span id="count-head1">0</span></li>
