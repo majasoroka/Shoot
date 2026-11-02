@@ -12,18 +12,19 @@
     <!-- Header / HUD -->
     <header class="hud">
       <div class="stat-box">
-        <span class="label">SCORE</span>
-        <span id="points-display" class="val">0</span>
+        <span class="label">LEVEL</span>
+        <span id="level-display" class="val">1</span>
       </div>
       <div class="stat-box">
-        <span class="label">COMBO</span>
-        <span id="combo-display" class="val">0x</span>
+        <span class="label">SCORE</span>
+        <span id="points-display" class="val">0</span>
       </div>
       <div class="stat-box">
         <span class="label">TIME</span>
         <span id="time-display" class="val">30s</span>
       </div>
       <button id="shop-toggle-btn" class="glow-btn alt">UPGRADES</button>
+      <button id="settings-toggle-btn" class="glow-btn alt" style="padding: 8px 8px;">⚙️</button>
       <button id="start-btn" class="glow-btn">START</button>
     </header>
 
@@ -39,8 +40,22 @@
       <!-- Start Screen Overlay -->
       <div id="start-screen" class="overlay">
         <h2>TACTICAL HEADSHOT RANGE</h2>
+        <p id="lobby-level-info" class="sub-hint" style="color: #00ffcc; font-size: 0.9rem; font-weight: bold;">CURRENT DEPLOYMENT: LEVEL 1</p>
         <p class="sub-hint">FUCK ISRAEL • FUCK TRUMP • FUCK RUSSIA • الحرية لفلسطين • СЛАВА УКРАЇНІ</p>
         <button id="main-start-btn" class="glow-btn large">DEPLOY TO RANGE</button>
+      </div>
+
+      <!-- Settings Modal Overlay -->
+      <div id="settings-modal" class="overlay hidden">
+        <h2>SETTINGS & PROGRESS</h2>
+        <div class="shop-card" style="width: 100%; flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="card-info">
+            <h3>Progress Management</h3>
+            <p>Reset all saved progress and start back from Level 1.</p>
+          </div>
+          <button id="reset-level-btn" class="buy-btn" style="background-color: #ff0055; color: #fff; width: 100%;">RESET TO LEVEL 1</button>
+        </div>
+        <button id="close-settings-btn" class="glow-btn large" style="margin-top: 10px;">BACK</button>
       </div>
 
       <!-- Armory & Intel Modal Overlay -->
@@ -185,9 +200,9 @@
       <!-- Game Over Overlay -->
       <div id="game-over-screen" class="overlay hidden">
         <h2 id="game-over-title">ROUND COMPLETE</h2>
-        <p class="final-score-text">FINAL SCORE: <span id="final-score">0</span></p>
+        <p class="final-score-text">SCORE: <span id="final-score">0</span></p>
         <p class="high-score-text">PERSONAL BEST: <span id="personal-best">0</span></p>
-        <button id="restart-btn" class="glow-btn large">PLAY AGAIN</button>
+        <button id="restart-btn" class="glow-btn large">NEXT LEVEL</button>
       </div>
     </main>
 
@@ -198,6 +213,12 @@
 
     <!-- Stats Tracker List -->
     <section class="stats-tracker">
+      <!-- Objectives Box -->
+      <div id="objectives-box" style="background: rgba(0, 255, 204, 0.08); border: 1px solid #00ffcc; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;">
+        <h3 style="color: #00ffcc; font-size: 0.85rem; margin-bottom: 4px;">📋 LEVEL OBJECTIVES</h3>
+        <p id="objective-text" style="font-size: 0.78rem; color: #fff; line-height: 1.3;">Reach target score to clear level.</p>
+      </div>
+
       <h3>🎯 Target Hit Tracker</h3>
       <ul id="tracker-list">
         <li>Vladimir Putin 🇷🇺: <span id="count-head0">0</span></li>
