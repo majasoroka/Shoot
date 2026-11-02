@@ -795,7 +795,6 @@ function setupLevelObjectives() {
 }
 
 function openSettings() {
-  // Automatically close Upgrades if open
   if (shopModal) shopModal.classList.add('hidden');
 
   if (isGameActive) {
@@ -822,7 +821,6 @@ function resetProgress() {
     currentLevel = 1;
     localStorage.setItem('tactical_current_level', currentLevel);
     
-    // Wipes points & upgrades on reset
     points = 0;
     pointsMultiplier = 1;
     hasShield = false;
@@ -1012,7 +1010,6 @@ function updateUI() {
 }
 
 function openShop() {
-  // Automatically close Settings if open
   if (settingsModal) settingsModal.classList.add('hidden');
 
   if (isGameActive) {
@@ -1131,7 +1128,6 @@ function checkInstantLevelPass() {
     currentLevel++;
     localStorage.setItem('tactical_current_level', currentLevel);
 
-    // Wipes points & upgrades for the next level
     resetRunStats();
 
     if (finalScoreDisplay) finalScoreDisplay.innerText = points;
@@ -1328,7 +1324,15 @@ function spawnEntity(forceBombCheck = true) {
     setTimeout(() => { if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) flag.remove(); }, headLingerTime);
 
   } else {
-    const headIndex = Math.floor(Math.random() * headImages.length);
+    // --- BOOSTED POLITICIAN SPAWN LOGIC ---
+    let headIndex;
+    if (currentObjective.type === 'quota_min' && Math.random() < 0.65) {
+      // 65% chance to force-spawn the required quota target if quota_min is active
+      headIndex = currentObjective.targetPolitician;
+    } else {
+      headIndex = Math.floor(Math.random() * headImages.length);
+    }
+
     const target = document.createElement('img');
     target.src = headImages[headIndex];
     target.classList.add('target-head');
