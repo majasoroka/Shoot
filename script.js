@@ -716,9 +716,9 @@ function applyLocalization() {
   document.getElementById('upg-name-crit').innerText = t('upgCritName'); document.getElementById('upg-desc-crit').innerText = t('upgCritDesc');
   document.getElementById('upg-name-laser').innerText = t('upgLaserName'); document.getElementById('upg-desc-laser').innerText = t('upgLaserDesc');
   document.getElementById('upg-name-adrenaline').innerText = t('upgAdrenalineName'); document.getElementById('upg-desc-adrenaline').innerText = t('upgAdrenalineDesc');
-  document.getElementById('upg-name-moaz').innerText = t('upgMoazName'); document.getElementById('upg-desc-moaz').innerText = t('upgMoazDesc');
-  document.getElementById('upg-name-goat').innerText = t('upgGoatName'); document.getElementById('upg-desc-goat').innerText = t('upgGoatDesc');
-  document.getElementById('upg-name-shakhtar').innerText = t('upgShakhtarName'); document.getElementById('upg-desc-shakhtar').innerText = t('upgShakhtarDesc');
+  document.getElementById('upg-name-moaz').innerText = t('upgMoazName'); document.getElementById('upg-desc-moaz').innerText = t('upgDescMoaz');
+  document.getElementById('upg-name-goat').innerText = t('upgGoatName'); document.getElementById('upg-desc-goat').innerText = t('upgDescGoat');
+  document.getElementById('upg-name-shakhtar').innerText = t('upgShakhtarName'); document.getElementById('upg-desc-shakhtar').innerText = t('upgDescShakhtar');
 
   // Guns
   for (let i = 0; i < 8; i++) {
@@ -1329,9 +1329,9 @@ function spawnEntity(forceBombCheck = true) {
     setTimeout(() => { if (flag.parentNode && !flag.classList.contains('shot') && !isPaused) flag.remove(); }, headLingerTime);
 
   } else {
-    // --- SUPER BOOSTED POLITICIAN SPAWN LOGIC (80% chance) ---
+    // --- 70% BOOSTED POLITICIAN SPAWN LOGIC ---
     let headIndex;
-    if (currentObjective.type === 'quota_min' && Math.random() < 0.80) {
+    if (currentObjective.type === 'quota_min' && Math.random() < 0.70) {
       headIndex = currentObjective.targetPolitician;
     } else {
       headIndex = Math.floor(Math.random() * headImages.length);
