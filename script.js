@@ -69,14 +69,17 @@ let targetSize = 75;
 let headLingerTime = 1800;
 let hasShield = false;
 let hasCrit = false;
+let autoDroneActive = false;
+let droneInterval = null;
 
 let bgMoazUnlocked = false;
 let bgGoatUnlocked = false;
 let bgShakhtarUnlocked = false;
 let currentBg = 'default';
 
-// Game Modes & Level System
-let gameMode = localStorage.getItem('tactical_gamemode') || 'levels'; // 'levels' or 'freeplay'
+// Localization & Game Modes
+let currentLang = localStorage.getItem('tactical_lang') || 'en'; // 'en', 'uk', 'pt', 'ar'
+let gameMode = localStorage.getItem('tactical_gamemode') || 'levels';
 let currentLevel = parseInt(localStorage.getItem('tactical_current_level') || '1', 10);
 let currentObjective = { type: 'score', targetScore: 100, targetPolitician: -1, requiredHits: 0, maxAllowedHits: 999 };
 
@@ -86,15 +89,308 @@ let gameTimer = null;
 let spawnInterval = null;
 let moveInterval = null;
 
-let initialCosts = { multiplier: 50, time: 75, shield: 90, crit: 110, bgMoaz: 150, bgGoat: 300, bgShakhtar: 450 };
+let initialCosts = { multiplier: 50, time: 75, shield: 90, crit: 110, drone: 200, frenzy: 350, bgMoaz: 150, bgGoat: 300, bgShakhtar: 450 };
 let costs = { ...initialCosts };
+
+// Translations dictionary
+const translations = {
+  en: {
+    level: "LEVEL",
+    score: "SCORE",
+    time: "TIME",
+    upgradesBtn: "UPGRADES",
+    startBtn: "START",
+    deployBtn: "DEPLOY TO RANGE",
+    lobbyTitle: "TACTICAL HEADSHOT RANGE",
+    currentDeployment: "CURRENT DEPLOYMENT: LEVEL",
+    currentMode: "CURRENT MODE: FREEPLAY",
+    howToPlay: "HOW TO PLAY",
+    tut1: "🎯 <b>Targets:</b> Tap/shoot enemy politicians and flags to rack up points and build combos.",
+    tut2: "📋 <b>Level Objectives:</b> Meet the score or hit quotas before the timer runs out to instantly clear the level and advance!",
+    tut3: "⚠️ <b>Warnings:</b> Avoid shooting civilians or hitting active bombs, or your stats will wipe!",
+    tut4: "⚡ <b>Armory:</b> Spend points in Upgrades & Guns to unlock powerful boosts and background themes.",
+    tutBtn: "GOT IT, LET'S SHOOT",
+    settingsTitle: "SETTINGS & PROGRESS",
+    langHeader: "Language / Мова / Idioma / اللغة",
+    langDesc: "Choose your preferred language:",
+    modeHeader: "Game Mode",
+    modeLevels: "Current: Levels Mode",
+    modeFreeplay: "Current: Freeplay Mode (No Levels)",
+    switchFreeplay: "SWITCH TO FREEPLAY",
+    switchLevels: "SWITCH TO LEVELS MODE",
+    progHeader: "Progress Management",
+    progDesc: "Reset level back to Level 1 (Keeps points & upgrades).",
+    resetBtn: "RESET LEVEL TO 1",
+    backBtn: "BACK",
+    armoryTitle: "ARMORY & INTEL",
+    gamePaused: "⏸️ GAME PAUSED",
+    lobbyArmory: "⚡ LOBBY ARMORY (START A ROUND TO BUY)",
+    tabUpgrades: "⚡ Upgrades",
+    tabGuns: "🔫 Guns",
+    resumeGame: "RESUME GAME",
+    objHeader: "📋 LEVEL OBJECTIVES",
+    trackerHeader: "🎯 Target Hit Tracker",
+    roundComplete: "ROUND COMPLETE",
+    levelCleared: "LEVEL CLEARED!",
+    levelFailed: "LEVEL FAILED",
+    nextLevel: "NEXT LEVEL",
+    retryLevel: "RETRY LEVEL",
+    playAgain: "PLAY AGAIN",
+    personalBest: "PERSONAL BEST",
+    buy: "Buy",
+    equip: "Equip",
+    equipped: "Equipped",
+    unavailable: "Unavailable",
+    active: "ACTIVE",
+    shieldBlocked: "SHIELD BLOCKED!",
+    boomWiped: "BOOM! STATS WIPED!",
+    critText: "CRIT!",
+    flagText: "FLAG!",
+    // Upgrades
+    upgMultName: "Double Multiplier", upgMultDesc: "Doubles score payout per hit.",
+    upgTimeName: "Extra Time (+10s)", upgTimeDesc: "Adds +10s to active round timer.",
+    upgShieldName: "Bomb Shield", upgShieldDesc: "Blocks 1 accidental bomb explosion.",
+    upgCritName: "Critical Strike", upgCritDesc: "25% chance for 3x critical point hits.",
+    upgDroneName: "Auto-Sniper Drone", upgDroneDesc: "Automatically picks off random targets periodically.",
+    upgFrenzyName: "Score Frenzy", upgFrenzyDesc: "Instantly grants +500 bonus points.",
+    upgMoazName: "Background of Moaz", upgMoazDesc: "Changes arena background to Moaz.",
+    upgGoatName: "Background of the goat", upgGoatDesc: "Changes arena background to the best person in history.",
+    upgShakhtarName: "Shakhtar Background", upgShakhtarDesc: "Changes arena background to FC Shakhtar Donetsk.",
+    // Guns
+    gun0Name: "Standard Pistol", gun0Desc: "Owned (Starter)",
+    gun1Name: "Compact Sidearm", gun1Desc: "Upgraded Sidearm",
+    gun2Name: "Tactical Carbine", gun2Desc: "Mid-tier Rifle",
+    gun3Name: "Holographic SMG", gun3Desc: "High-rate Fire",
+    gun4Name: "Heavy Assaulter", gun4Desc: "Heavy Duty",
+    gun5Name: "Cyberpunk Rifle", gun5Desc: "Futuristic Tech",
+    gun6Name: "Advanced Marksman", gun6Desc: "Elite Precision",
+    gun7Name: "Heavy RPG", gun7Desc: "Most Expensive"
+  },
+  uk: {
+    level: "РІВЕНЬ",
+    score: "РАХУНОК",
+    time: "ЧАС",
+    upgradesBtn: "ПОКРАЩЕННЯ",
+    startBtn: "ПОЧАТИ",
+    deployBtn: "ВИЙТИ НА ПОЛІГОН",
+    lobbyTitle: "ТАКТИЧНИЙ ТИР",
+    currentDeployment: "ПОТОЧНИЙ РІВЕНЬ:",
+    currentMode: "РЕЖИМ: ВІЛЬНА ГРА",
+    howToPlay: "ЯК ГРАТИ",
+    tut1: "🎯 <b>Цілі:</b> Стріляйте по політиках-ворогах і прапорах, щоб набирати очки та комбо.",
+    tut2: "📋 <b>Цілі рівня:</b> Досягніть потрібного рахунку до закінчення часу, щоб пройти рівень!",
+    tut3: "⚠️ <b>Попередження:</b> Уникайте цивільних та бомб, інакше ваш прогрес буде скинуто!",
+    tut4: "⚡ <b>Арсенал:</b> Витрачайте бали на покращення та зброю.",
+    tutBtn: "ЗРОЗУМІЛО, ПОГНАЛИ",
+    settingsTitle: "НАЛАШТУВАННЯ ТА ПРОГРЕС",
+    langHeader: "Мова / Language / Idioma / اللغة",
+    langDesc: "Оберіть мову гри:",
+    modeHeader: "Режим гри",
+    modeLevels: "Поточний: Рівні",
+    modeFreeplay: "Поточний: Вільна гра",
+    switchFreeplay: "ПЕРЕКЛЮЧИТИ НА ВІЛЬНУ ГРУ",
+    switchLevels: "ПЕРЕКЛЮЧИТИ НА РІВНІ",
+    progHeader: "Керування прогресом",
+    progDesc: "Скинути рівень до 1 (бали та покращення зберігаються).",
+    resetBtn: "СКИНУТИ РІВЕНЬ ДО 1",
+    backBtn: "НАЗАД",
+    armoryTitle: "АРСЕНАЛ І ІНФО",
+    gamePaused: "⏸️ ГРУ ПРИЗУПИНЕНО",
+    lobbyArmory: "⚡ АРСЕНАЛ (ПОЧНІТЬ РАУНД ДЛЯ КУПІВЛІ)",
+    tabUpgrades: "⚡ Покращення",
+    tabGuns: "🔫 Зброя",
+    resumeGame: "ПОВЕРНУТИСЬ ДО ГРИ",
+    objHeader: "📋 ЦІЛІ РІВНЯ",
+    trackerHeader: "🎯 Трекер влучань",
+    roundComplete: "РАУНД ЗАВЕРШЕНО",
+    levelCleared: "РІВЕНЬ ПРОЙДЕНО!",
+    levelFailed: "РІВЕНЬ ПРОВАЛЕНО",
+    nextLevel: "НАСТУПНИЙ РІВЕНЬ",
+    retryLevel: "ПОВТОРИТИ РІВЕНЬ",
+    playAgain: "ГРАТИ ЗНОВУ",
+    personalBest: "РЕКОРД",
+    buy: "Купити",
+    equip: "Екіпірувати",
+    equipped: "Екіпіровано",
+    unavailable: "Недоступно",
+    active: "АКТИВНО",
+    shieldBlocked: "ЩИТ ЗАХИСТИВ!",
+    boomWiped: "БУМ! СТАТИСТИКУ СКИНУТО!",
+    critText: "КРИТ!",
+    flagText: "ПРАПОР!",
+    // Upgrades
+    upgMultName: "Подвійний множник", upgMultDesc: "Подвоює очки за влучання.",
+    upgTimeName: "Додатковий час (+10с)", upgTimeDesc: "Додає 10 секунд до таймера.",
+    upgShieldName: "Щит від бомб", upgShieldDesc: "Блокує вибух бомби 1 раз.",
+    upgCritName: "Критичний удар", upgCritDesc: "25% шанс на потрійні очки.",
+    upgDroneName: "Авто-дрон", upgDroneDesc: "Автоматично вражає цілі періодично.",
+    upgFrenzyName: "Блискавичні очки", upgFrenzyDesc: "Миттєво дає +500 бонусних очок.",
+    upgMoazName: "Фон Моаза", upgMoazDesc: "Змінює фон арени на Моаза.",
+    upgGoatName: "Фон найкращої людини", upgGoatDesc: "Змінює фон на найкращу людину в історії.",
+    upgShakhtarName: "Фон Шахтаря", upgShakhtarDesc: "Змінює фон на ФК Шахтар Донецьк.",
+    // Guns
+    gun0Name: "Стандартний пістолет", gun0Desc: "Початкова",
+    gun1Name: "Компактний пістолет", gun1Desc: "Покращена",
+    gun2Name: "Тактичний карабін", gun2Desc: "Середня гвинтівка",
+    gun3Name: "Голографічний ПП", gun3Desc: "Швидкострільна",
+    gun4Name: "Важкий штурмовик", gun4Desc: "Важке озброєння",
+    gun5Name: "Кіберпанк гвинтівка", gun5Desc: "Футуристична",
+    gun6Name: "Елітний снайпер", gun6Desc: "Висока точність",
+    gun7Name: "Важкий РПГ", gun7Desc: "Найдорожча"
+  },
+  pt: {
+    level: "NÍVEL",
+    score: "PONTOS",
+    time: "TEMPO",
+    upgradesBtn: "MELHORIAS",
+    startBtn: "INICIAR",
+    deployBtn: "IR PARA O CAMPO",
+    lobbyTitle: "ESTANDE TÁTICO",
+    currentDeployment: "NÍVEL ATUAL:",
+    currentMode: "MODO: JOGO LIVRE",
+    howToPlay: "COMO JOGAR",
+    tut1: "🎯 <b>Alvos:</b> Atire em políticos inimigos e bandeiras para acumular pontos e combos.",
+    tut2: "📋 <b>Objetivos:</b> Alcance a pontuação necessária antes do tempo acabar para avançar de nível!",
+    tut3: "⚠️ <b>Avisos:</b> Evite atirar em civis ou bombas, ou suas estatísticas serão resetadas!",
+    tut4: "⚡ <b>Arsenal:</b> Gaste pontos em melhorias e armas para desbloquear bônus.",
+    tutBtn: "ENTENDI, VAMO ATIRAR",
+    settingsTitle: "CONFIGURAÇÕES E PROGRESSO",
+    langHeader: "Idioma / Мова / Language / اللغة",
+    langDesc: "Escolha seu idioma preferido:",
+    modeHeader: "Modo de Jogo",
+    modeLevels: "Atual: Modo Níveis",
+    modeFreeplay: "Atual: Jogo Livre (Sem Níveis)",
+    switchFreeplay: "MUDAR PARA JOGO LIVRE",
+    switchLevels: "MUDAR PARA MODO NÍVEIS",
+    progHeader: "Gerenciamento de Progresso",
+    progDesc: "Resetar nível para o Nível 1 (Mantém pontos e melhorias).",
+    resetBtn: "RESETAR PARA O NÍVEL 1",
+    backBtn: "VOLTAR",
+    armoryTitle: "ARSENAL E INTEL",
+    gamePaused: "⏸️ JOGO PAUSADO",
+    lobbyArmory: "⚡ ARSENAL (INICIE UMA PARTIDA PARA COMPRAR)",
+    tabUpgrades: "⚡ Melhorias",
+    tabGuns: "🔫 Armas",
+    resumeGame: "RETOMAR JOGO",
+    objHeader: "📋 OBJETIVOS DO NÍVEL",
+    trackerHeader: "🎯 Rastreador de Alvos",
+    roundComplete: "RODADA COMPLETA",
+    levelCleared: "NÍVEL CONCLUÍDO!",
+    levelFailed: "NÍVEL FALHOU",
+    nextLevel: "PRÓXIMO NÍVEL",
+    retryLevel: "TENTAR NOVAMENTE",
+    playAgain: "JOGAR DE NOVO",
+    personalBest: "RECORDE PESSOAL",
+    buy: "Comprar",
+    equip: "Equipar",
+    equipped: "Equipado",
+    unavailable: "Indisponível",
+    active: "ATIVO",
+    shieldBlocked: "ESCUDO BLOQUEU!",
+    boomWiped: "BOOM! ESTATÍSTICAS ZERADAS!",
+    critText: "CRÍTICO!",
+    flagText: "BANDEIRA!",
+    // Upgrades
+    upgMultName: "Multiplicador Duplo", upgMultDesc: "Dobrar pontos por acerto.",
+    upgTimeName: "Tempo Extra (+10s)", upgTimeDesc: "Adiciona +10s ao temporizador.",
+    upgShieldName: "Escudo de Bomba", upgShieldDesc: "Bloqueia 1 explosão de bomba.",
+    upgCritName: "Ataque Crítico", upgCritDesc: "25% de chance de 3x pontos.",
+    upgDroneName: "Drone Auto-Sniper", upgDroneDesc: "Elimina alvos aleatórios periodicamente.",
+    upgFrenzyName: "Frenesi de Pontos", upgFrenzyDesc: "Concede +500 pontos bônus instantaneamente.",
+    upgMoazName: "Fundo do Moaz", upgMoazDesc: "Muda o fundo da arena para o Moaz.",
+    upgGoatName: "Fundo da Lenda", upgGoatDesc: "Muda o fundo para a melhor pessoa da história.",
+    upgShakhtarName: "Fundo do Shakhtar", upgShakhtarDesc: "Muda o fundo para o FC Shakhtar Donetsk.",
+    // Guns
+    gun0Name: "Pistola Padrão", gun0Desc: "Adquirida (Inicial)",
+    gun1Name: "Arma Compacta", gun1Desc: "Arma Aprimorada",
+    gun2Name: "Carabina Tática", gun2Desc: "Rifle Intermediário",
+    gun3Name: "SMG Holográfica", gun3Desc: "Alta Cadência",
+    gun4Name: "Assaltante Pesado", gun4Desc: "Pesado",
+    gun5Name: "Rifle Cyberpunk", gun5Desc: "Tecnologia Futurista",
+    gun6Name: "Atirador de Elite", gun6Desc: "Precisão Elite",
+    gun7Name: "RPG Pesado", gun7Desc: "Mais Caro"
+  },
+  ar: {
+    level: "المستوى",
+    score: "النقاط",
+    time: "الوقت",
+    upgradesBtn: "الترقيات",
+    startBtn: "ابدأ",
+    deployBtn: "انطلق للساحة",
+    lobbyTitle: "رماية التكتيكية",
+    currentDeployment: "المستوى الحالي:",
+    currentMode: "الوضع: اللعب الحر",
+    howToPlay: "كيفية اللعب",
+    tut1: "🎯 <b>الأهداف:</b> اضغط على السياسيين الأعداء والأعلام لجمع النقاط.",
+    tut2: "📋 <b>أهداف المستوى:</b> حقق النقاط المطلوبة قبل نفاد الوقت لتجاوز المستوى!",
+    tut3: "⚠️ <b>تحذيرات:</b> تجنب إطلاق النار على المدني وإلا ستفقد نقاطك!",
+    tut4: "⚡ <b>الترقيات:</b> انفق النقاط لشراء ترقيات وأسلحة قوية.",
+    tutBtn: "فهمت، هيا لنبدأ",
+    settingsTitle: "الإعدادات والتقدم",
+    langHeader: "اللغة / Language / Мова / Idioma",
+    langDesc: "اختر لغتك المفضلة:",
+    modeHeader: "وضع اللعب",
+    modeLevels: "الحالي: وضع المستويات",
+    modeFreeplay: "الحالي: اللعب الحر (بدون مستويات)",
+    switchFreeplay: "التحويل للعب الحر",
+    switchLevels: "التحويل لوضع المستويات",
+    progHeader: "إدارة التقدم",
+    progDesc: "إعادة تعيين المستوى إلى 1 (مع الاحتفاظ بالنقاط والترقيات).",
+    resetBtn: "إعادة تعيين المستوى إلى 1",
+    backBtn: "رجوع",
+    armoryTitle: "الترسانة",
+    gamePaused: "⏸️ اللعبة متوقفة",
+    lobbyArmory: "⚡ الترسانة (ابدأ جولة للشراء)",
+    tabUpgrades: "⚡ الترقيات",
+    tabGuns: "🔫 الأسلحة",
+    resumeGame: "استئناف اللعبة",
+    objHeader: "📋 أهداف المستوى",
+    trackerHeader: "🎯 متتبع الإصابات",
+    roundComplete: "انتهت الجولة",
+    levelCleared: "تم اجتياز المستوى!",
+    levelFailed: "فشل المستوى",
+    nextLevel: "المستوى التالي",
+    retryLevel: "إعادة المحاولة",
+    playAgain: "العب مجدداً",
+    personalBest: "أفضل رقم قياسي",
+    buy: "شراء",
+    equip: "تجهيز",
+    equipped: "مجهز",
+    unavailable: "غير متوفر",
+    active: "نشط",
+    shieldBlocked: "تم صد القنبلة بالدرع!",
+    boomWiped: "بوم! تم مسح النقاط!",
+    critText: "ضربة حرجة!",
+    flagText: "علم!",
+    // Upgrades
+    upgMultName: "مضاعف النقاط", upgMultDesc: "يضاعف النقاط لكل إصابة.",
+    upgTimeName: "وقت إضافي (+10ث)", upgTimeDesc: "يضيف 10 ثوانٍ للوقت.",
+    upgShieldName: "درع القنابل", upgShieldDesc: "يحجب انفجار قنبلة واحدة.",
+    upgCritName: "ضربة حرجة", upgCritDesc: "فرصة 25% لمضاعفة النقاط 3 أضعاف.",
+    upgDroneName: "طائرة قنص آلية", upgDroneDesc: "تقنص الأهداف تلقائياً بشكل دوري.",
+    upgFrenzyName: "جنون النقاط", upgFrenzyDesc: "يمنحك +500 نقطة فوراً.",
+    upgMoazName: "خلفية معاذ", upgMoazDesc: "يغير خلفية الساحة إلى معاذ.",
+    upgGoatName: "خلفية الأسطورة", upgGoatDesc: "يغير الخلفية إلى أفضل شخصية.",
+    upgShakhtarName: "خلفية شاختار", upgShakhtarDesc: "يغير الخلفية إلى نادي شاختار دونيتسك.",
+    // Guns
+    gun0Name: "مسدس قياسي", gun0Desc: "مملوك (أساسي)",
+    gun1Name: "مسدس مدمج", gun1Desc: "مسدس مطور",
+    gun2Name: "كاربين تكتيكي", gun2Desc: "بندقية متوسطة",
+    gun3Name: "رشاش هولوغرافي", gun3Desc: "سرعة إطلاق عالية",
+    gun4Name: "مهاجم ثقيل", gun4Desc: "خدمة شاقة",
+    gun5Name: "بندقية سيبربانك", gun5Desc: "تكنولوجيا مستقبلية",
+    gun6Name: "قناص متقدم", gun6Desc: "دقة فائقة",
+    gun7Name: "آر بي جي ثقيل", gun7Desc: "الأغلى سعراً"
+  }
+};
 
 // DOM Elements
 let pointsDisplay, comboDisplay, multiplierDisplay, timeDisplay, levelDisplay, hudLevelBox, gameArea, muzzleFlash, weaponGun, currentGunImg;
-let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, lobbySettingsBtn, closeSettingsBtn, resetLevelBtn, toggleGamemodeBtn;
-let startScreen, shopModal, settingsModal, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice, lobbyLevelInfo, objectiveText, gamemodeDesc;
+let mainStartBtn, restartBtn, shopToggleBtn, closeShopBtn, settingsToggleBtn, closeSettingsBtn, resetLevelBtn, toggleGamemodeBtn;
+let startScreen, shopModal, settingsModal, tutorialModal, closeTutorialBtn, gameOverScreen, gameOverTitle, finalScoreDisplay, personalBestDisplay, shopStatusNotice, lobbyLevelInfo, objectiveText, gamemodeDesc;
 let tabUpgradesBtn, tabGunsBtn, sectionUpgrades, sectionGuns;
-let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyBgMoazBtn, buyBgGoatBtn, buyBgShakhtarBtn;
+let buyMultiplierBtn, buyTimeBtn, buyShieldBtn, buyCritBtn, buyDroneBtn, buyFrenzyBtn, buyBgMoazBtn, buyBgGoatBtn, buyBgShakhtarBtn;
+let langEnBtn, langUkBtn, langPtBtn, langArBtn;
 
 window.addEventListener('DOMContentLoaded', () => {
   pointsDisplay = document.getElementById('points-display');
@@ -113,7 +409,6 @@ window.addEventListener('DOMContentLoaded', () => {
   shopToggleBtn = document.getElementById('shop-toggle-btn');
   closeShopBtn = document.getElementById('close-shop-btn');
   settingsToggleBtn = document.getElementById('settings-toggle-btn');
-  lobbySettingsBtn = document.getElementById('lobby-settings-btn');
   closeSettingsBtn = document.getElementById('close-settings-btn');
   resetLevelBtn = document.getElementById('reset-level-btn');
   toggleGamemodeBtn = document.getElementById('toggle-gamemode-btn');
@@ -121,6 +416,8 @@ window.addEventListener('DOMContentLoaded', () => {
   startScreen = document.getElementById('start-screen');
   shopModal = document.getElementById('shop-modal');
   settingsModal = document.getElementById('settings-modal');
+  tutorialModal = document.getElementById('tutorial-modal');
+  closeTutorialBtn = document.getElementById('close-tutorial-btn');
   gameOverScreen = document.getElementById('game-over-screen');
   gameOverTitle = document.getElementById('game-over-title');
   finalScoreDisplay = document.getElementById('final-score');
@@ -139,9 +436,27 @@ window.addEventListener('DOMContentLoaded', () => {
   buyTimeBtn = document.getElementById('buy-time');
   buyShieldBtn = document.getElementById('buy-shield');
   buyCritBtn = document.getElementById('buy-crit');
+  buyDroneBtn = document.getElementById('buy-drone');
+  buyFrenzyBtn = document.getElementById('buy-frenzy');
   buyBgMoazBtn = document.getElementById('buy-bg-moaz');
   buyBgGoatBtn = document.getElementById('buy-bg-goat');
   buyBgShakhtarBtn = document.getElementById('buy-bg-shakhtar');
+
+  langEnBtn = document.getElementById('lang-en-btn');
+  langUkBtn = document.getElementById('lang-uk-btn');
+  langPtBtn = document.getElementById('lang-pt-btn');
+  langArBtn = document.getElementById('lang-ar-btn');
+
+  if (!localStorage.getItem('tactical_tutorial_seen')) {
+    if (tutorialModal) tutorialModal.classList.remove('hidden');
+  }
+
+  if (closeTutorialBtn) {
+    closeTutorialBtn.addEventListener('click', () => {
+      if (tutorialModal) tutorialModal.classList.add('hidden');
+      localStorage.setItem('tactical_tutorial_seen', 'true');
+    });
+  }
 
   const tabs = [tabUpgradesBtn, tabGunsBtn];
   const sections = [sectionUpgrades, sectionGuns];
@@ -163,10 +478,14 @@ window.addEventListener('DOMContentLoaded', () => {
   if (closeShopBtn) closeShopBtn.addEventListener('click', closeShop);
 
   if (settingsToggleBtn) settingsToggleBtn.addEventListener('click', openSettings);
-  if (lobbySettingsBtn) lobbySettingsBtn.addEventListener('click', openSettings);
   if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
   if (resetLevelBtn) resetLevelBtn.addEventListener('click', resetProgress);
   if (toggleGamemodeBtn) toggleGamemodeBtn.addEventListener('click', toggleGameMode);
+
+  if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
+  if (langUkBtn) langUkBtn.addEventListener('click', () => setLanguage('uk'));
+  if (langPtBtn) langPtBtn.addEventListener('click', () => setLanguage('pt'));
+  if (langArBtn) langArBtn.addEventListener('click', () => setLanguage('ar'));
 
   for (let i = 0; i < 8; i++) {
     const btn = document.getElementById(i === 0 ? 'equip-gun-0' : `gun-btn-${i}`);
@@ -191,7 +510,7 @@ window.addEventListener('DOMContentLoaded', () => {
       points -= costs.multiplier;
       pointsMultiplier *= 2;
       costs.multiplier = Math.floor(costs.multiplier * 2.5);
-      buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
+      buyMultiplierBtn.innerText = `${t('buy')} (${costs.multiplier} Pts)`;
       updateUI();
     }
   });
@@ -203,7 +522,7 @@ window.addEventListener('DOMContentLoaded', () => {
       remainingTime += 10;
       baseGameTime += 10;
       costs.time = Math.floor(costs.time * 2);
-      buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
+      buyTimeBtn.innerText = `${t('buy')} (${costs.time} Pts)`;
       updateUI();
     }
   });
@@ -213,7 +532,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (points >= costs.shield && !hasShield) {
       points -= costs.shield;
       hasShield = true;
-      buyShieldBtn.innerText = 'ACTIVE 🛡️';
+      buyShieldBtn.innerText = `${t('active')} 🛡️`;
       buyShieldBtn.disabled = true;
       updateUI();
     }
@@ -224,9 +543,32 @@ window.addEventListener('DOMContentLoaded', () => {
     if (points >= costs.crit && !hasCrit) {
       points -= costs.crit;
       hasCrit = true;
-      buyCritBtn.innerText = 'ACTIVE 💥';
+      buyCritBtn.innerText = `${t('active')} 💥`;
       buyCritBtn.disabled = true;
       updateUI();
+    }
+  });
+
+  if (buyDroneBtn) buyDroneBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
+    if (points >= costs.drone && !autoDroneActive) {
+      points -= costs.drone;
+      autoDroneActive = true;
+      buyDroneBtn.innerText = `${t('active')} 🚁`;
+      buyDroneBtn.disabled = true;
+      startAutoDrone();
+      updateUI();
+    }
+  });
+
+  if (buyFrenzyBtn) buyFrenzyBtn.addEventListener('click', () => {
+    if (!isGameActive) return;
+    if (points >= costs.frenzy) {
+      points -= costs.frenzy;
+      points += 500 * pointsMultiplier;
+      updateUI();
+      checkInstantLevelPass();
+      showPopup(gameArea.clientWidth / 2, gameArea.clientHeight / 2, '+500 FRENZY PTS!', 'gold');
     }
   });
 
@@ -282,10 +624,85 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  applyLocalization();
   setupLevelObjectives();
   updateGameModeUI();
   updateUI();
 });
+
+function t(key) {
+  return translations[currentLang][key] || translations['en'][key] || key;
+}
+
+function setLanguage(langCode) {
+  currentLang = langCode;
+  localStorage.setItem('tactical_lang', langCode);
+  applyLocalization();
+  setupLevelObjectives();
+  updateGameModeUI();
+  updateUI();
+}
+
+function applyLocalization() {
+  document.getElementById('lbl-level').innerText = t('level');
+  document.getElementById('lbl-score').innerText = t('score');
+  document.getElementById('lbl-time').innerText = t('time');
+  document.getElementById('shop-toggle-btn').innerText = t('upgradesBtn');
+  document.getElementById('start-btn').innerText = t('startBtn');
+  document.getElementById('txt-lobby-title').innerText = t('lobbyTitle');
+  document.getElementById('main-start-btn').innerText = t('deployBtn');
+
+  document.getElementById('txt-tut-title').innerText = t('howToPlay');
+  document.getElementById('txt-tut-1').innerHTML = t('tut1');
+  document.getElementById('txt-tut-2').innerHTML = t('tut2');
+  document.getElementById('txt-tut-3').innerHTML = t('tut3');
+  document.getElementById('txt-tut-4').innerHTML = t('tut4');
+  document.getElementById('close-tutorial-btn').innerText = t('tutBtn');
+
+  document.getElementById('txt-settings-title').innerText = t('settingsTitle');
+  document.getElementById('txt-lang-header').innerText = t('langHeader');
+  document.getElementById('txt-lang-desc').innerText = t('langDesc');
+  document.getElementById('txt-mode-header').innerText = t('modeHeader');
+  document.getElementById('txt-prog-header').innerText = t('progHeader');
+  document.getElementById('txt-prog-desc').innerText = t('progDesc');
+  document.getElementById('reset-level-btn').innerText = t('resetBtn');
+  document.getElementById('close-settings-btn').innerText = t('backBtn');
+
+  document.getElementById('txt-shop-title').innerText = t('armoryTitle');
+  document.getElementById('tab-upgrades-btn').innerText = t('tabUpgrades');
+  document.getElementById('tab-guns-btn').innerText = t('tabGuns');
+  document.getElementById('close-shop-btn').innerText = t('resumeGame');
+
+  document.getElementById('txt-obj-header').innerText = t('objHeader');
+  document.getElementById('txt-tracker-header').innerText = t('trackerHeader');
+  document.getElementById('restart-btn').innerText = t('nextLevel');
+  document.getElementById('lbl-final-score').innerText = t('score');
+  document.getElementById('lbl-best-score').innerText = t('personalBest');
+
+  // Upgrades
+  document.getElementById('upg-name-mult').innerText = t('upgMultName'); document.getElementById('upg-desc-mult').innerText = t('upgMultDesc');
+  document.getElementById('upg-name-time').innerText = t('upgTimeName'); document.getElementById('upg-desc-time').innerText = t('upgTimeDesc');
+  document.getElementById('upg-name-shield').innerText = t('upgShieldName'); document.getElementById('upg-desc-shield').innerText = t('upgShieldDesc');
+  document.getElementById('upg-name-crit').innerText = t('upgCritName'); document.getElementById('upg-desc-crit').innerText = t('upgCritDesc');
+  document.getElementById('upg-name-drone').innerText = t('upgDroneName'); document.getElementById('upg-desc-drone').innerText = t('upgDroneDesc');
+  document.getElementById('upg-name-frenzy').innerText = t('upgFrenzyName'); document.getElementById('upg-desc-frenzy').innerText = t('upgFrenzyDesc');
+  document.getElementById('upg-name-moaz').innerText = t('upgMoazName'); document.getElementById('upg-desc-moaz').innerText = t('upgMoazDesc');
+  document.getElementById('upg-name-goat').innerText = t('upgGoatName'); document.getElementById('upg-desc-goat').innerText = t('upgGoatDesc');
+  document.getElementById('upg-name-shakhtar').innerText = t('upgShakhtarName'); document.getElementById('upg-desc-shakhtar').innerText = t('upgShakhtarDesc');
+
+  // Guns
+  for (let i = 0; i < 8; i++) {
+    document.getElementById(`gun-name-${i}`).innerText = t(`gun${i}Name`);
+    document.getElementById(`gun-desc-${i}`).innerText = t(`gun${i}Desc`);
+  }
+
+  // Highlight active language button
+  [langEnBtn, langUkBtn, langPtBtn, langArBtn].forEach(b => { if(b) b.style.border = "1px solid #1f2c3e"; });
+  if (currentLang === 'en' && langEnBtn) langEnBtn.style.border = "2px solid #00ffcc";
+  if (currentLang === 'uk' && langUkBtn) langUkBtn.style.border = "2px solid #00ffcc";
+  if (currentLang === 'pt' && langPtBtn) langPtBtn.style.border = "2px solid #00ffcc";
+  if (currentLang === 'ar' && langArBtn) langArBtn.style.border = "2px solid #00ffcc";
+}
 
 function setupLevelObjectives() {
   if (gameMode === 'freeplay') {
@@ -295,14 +712,13 @@ function setupLevelObjectives() {
       targetPolitician: -1,
       requiredHits: 0,
       maxAllowedHits: 999,
-      description: 'Freeplay Mode: Endless arcade action with no level goals.'
+      description: t('currentMode')
     };
     if (objectiveText) objectiveText.innerText = currentObjective.description;
-    if (lobbyLevelInfo) lobbyLevelInfo.innerText = `CURRENT MODE: FREEPLAY`;
+    if (lobbyLevelInfo) lobbyLevelInfo.innerText = t('currentMode');
     return;
   }
 
-  // Appropriate scaling for high scores (exponential scaling curves ranging from easier early levels to billion+ targets)
   let targetScore;
   if (currentLevel <= 5) {
     targetScore = currentLevel * 500;
@@ -311,11 +727,9 @@ function setupLevelObjectives() {
   } else {
     targetScore = 150000 * Math.pow(2.4, currentLevel - 15);
   }
-  // Round score target for clean numbers
   targetScore = Math.round(targetScore);
 
   if (currentLevel % 5 === 0) {
-    // Quota Challenge Level
     let politicianIndex = (currentLevel / 5) % headNames.length;
     let requiredHits = 5 + (currentLevel * 2);
     currentObjective = {
@@ -324,10 +738,9 @@ function setupLevelObjectives() {
       targetPolitician: politicianIndex,
       requiredHits: requiredHits,
       maxAllowedHits: 999,
-      description: `Level ${currentLevel}: Reach ${targetScore.toLocaleString()} Pts AND hit ${headNames[politicianIndex]} at least ${requiredHits} times.`
+      description: `Lvl ${currentLevel}: Reach ${targetScore.toLocaleString()} Pts & hit ${headNames[politicianIndex]} ${requiredHits}x.`
     };
   } else if (currentLevel % 7 === 0) {
-    // Cap Challenge Level (Hardcore Over-hit Prevention)
     let politicianIndex = currentLevel % headNames.length;
     let maxHits = Math.max(3, 15 - Math.floor(currentLevel / 3));
     currentObjective = {
@@ -336,22 +749,21 @@ function setupLevelObjectives() {
       targetPolitician: politicianIndex,
       requiredHits: 0,
       maxAllowedHits: maxHits,
-      description: `Level ${currentLevel}: Reach ${targetScore.toLocaleString()} Pts. WARNING: Do not hit ${headNames[politicianIndex]} more than ${maxHits} times!`
+      description: `Lvl ${currentLevel}: Reach ${targetScore.toLocaleString()} Pts. Max hits on ${headNames[politicianIndex]}: ${maxHits}!`
     };
   } else {
-    // Standard Score Target Level
     currentObjective = {
       type: 'score',
       targetScore: targetScore,
       targetPolitician: -1,
       requiredHits: 0,
       maxAllowedHits: 999,
-      description: `Level ${currentLevel}: Reach ${targetScore.toLocaleString()} Points to clear.`
+      description: `Level ${currentLevel}: Reach ${targetScore.toLocaleString()} Pts.`
     };
   }
 
   if (objectiveText) objectiveText.innerText = currentObjective.description;
-  if (lobbyLevelInfo) lobbyLevelInfo.innerText = `CURRENT DEPLOYMENT: LEVEL ${currentLevel}`;
+  if (lobbyLevelInfo) lobbyLevelInfo.innerText = `${t('currentDeployment')} ${currentLevel}`;
   if (levelDisplay) levelDisplay.innerText = currentLevel;
 }
 
@@ -361,6 +773,7 @@ function openSettings() {
     clearInterval(gameTimer);
     clearInterval(spawnInterval);
     if (moveInterval) clearInterval(moveInterval);
+    if (droneInterval) clearInterval(droneInterval);
   }
   updateGameModeUI();
   if (settingsModal) settingsModal.classList.remove('hidden');
@@ -375,7 +788,7 @@ function closeSettings() {
 }
 
 function resetProgress() {
-  if (confirm("Are you sure you want to reset all progress back to Level 1?")) {
+  if (confirm(t('progDesc'))) {
     currentLevel = 1;
     localStorage.setItem('tactical_current_level', currentLevel);
     setupLevelObjectives();
@@ -398,14 +811,32 @@ function toggleGameMode() {
 
 function updateGameModeUI() {
   if (gameMode === 'freeplay') {
-    if (gamemodeDesc) gamemodeDesc.innerText = "Current: Freeplay Mode (No Levels)";
-    if (toggleGamemodeBtn) toggleGamemodeBtn.innerText = "SWITCH TO LEVELS MODE";
+    if (gamemodeDesc) gamemodeDesc.innerText = t('modeFreeplay');
+    if (toggleGamemodeBtn) toggleGamemodeBtn.innerText = t('switchLevels');
     if (hudLevelBox) hudLevelBox.style.display = 'none';
   } else {
-    if (gamemodeDesc) gamemodeDesc.innerText = "Current: Levels Mode";
-    if (toggleGamemodeBtn) toggleGamemodeBtn.innerText = "SWITCH TO FREEPLAY";
+    if (gamemodeDesc) gamemodeDesc.innerText = t('modeLevels');
+    if (toggleGamemodeBtn) toggleGamemodeBtn.innerText = t('switchFreeplay');
     if (hudLevelBox) hudLevelBox.style.display = 'flex';
   }
+}
+
+function startAutoDrone() {
+  if (droneInterval) clearInterval(droneInterval);
+  droneInterval = setInterval(() => {
+    if (!isGameActive || isPaused || !gameArea) return;
+    const activeTargets = gameArea.querySelectorAll('.target-head:not(.shot)');
+    if (activeTargets.length > 0) {
+      const randomTarget = activeTargets[Math.floor(Math.random() * activeTargets.length)];
+      const rect = randomTarget.getBoundingClientRect();
+      const areaRect = gameArea.getBoundingClientRect();
+      const x = rect.left - areaRect.left + rect.width / 2;
+      const y = rect.top - areaRect.top + rect.height / 2;
+      
+      const headIdx = parseInt(randomTarget.dataset.headIndex || '0', 10);
+      hitTarget(randomTarget, x + areaRect.left, y + areaRect.top, randomTarget.classList.contains('golden'), headIdx);
+    }
+  }, 2000);
 }
 
 function handleGunClick(gunIndex) {
@@ -432,23 +863,23 @@ function updateGunShopUI() {
     if (!btn) continue;
 
     if (!isGameActive) {
-      btn.innerText = "Unavailable (Not in Round)";
+      btn.innerText = t('unavailable');
       btn.disabled = true;
       btn.classList.remove('equipped-status');
       continue;
     }
 
     if (currentEquippedGun === i) {
-      btn.innerText = "Equipped";
+      btn.innerText = t('equipped');
       btn.disabled = true;
       btn.classList.add('equipped-status');
     } else if (ownedGuns[i]) {
-      btn.innerText = "Equip";
+      btn.innerText = t('equip');
       btn.disabled = false;
       btn.classList.remove('equipped-status');
     } else {
       const price = gunsData[i].price;
-      btn.innerText = `Buy (${price.toLocaleString()} Pts)`;
+      btn.innerText = `${t('buy')} (${price.toLocaleString()} Pts)`;
       btn.disabled = points < price;
       btn.classList.remove('equipped-status');
     }
@@ -472,63 +903,67 @@ function updateUI() {
   }
 
   if (!isGameActive) {
-    if (buyMultiplierBtn) { buyMultiplierBtn.disabled = true; buyMultiplierBtn.innerText = "Unavailable"; }
-    if (buyTimeBtn) { buyTimeBtn.disabled = true; buyTimeBtn.innerText = "Unavailable"; }
-    if (buyShieldBtn) { buyShieldBtn.disabled = true; buyShieldBtn.innerText = "Unavailable"; }
-    if (buyCritBtn) { buyCritBtn.disabled = true; buyCritBtn.innerText = "Unavailable"; }
-    if (buyBgMoazBtn) { buyBgMoazBtn.disabled = true; buyBgMoazBtn.innerText = "Unavailable"; }
-    if (buyBgGoatBtn) { buyBgGoatBtn.disabled = true; buyBgGoatBtn.innerText = "Unavailable"; }
-    if (buyBgShakhtarBtn) { buyBgShakhtarBtn.disabled = true; buyBgShakhtarBtn.innerText = "Unavailable"; }
+    if (buyMultiplierBtn) { buyMultiplierBtn.disabled = true; buyMultiplierBtn.innerText = t('unavailable'); }
+    if (buyTimeBtn) { buyTimeBtn.disabled = true; buyTimeBtn.innerText = t('unavailable'); }
+    if (buyShieldBtn) { buyShieldBtn.disabled = true; buyShieldBtn.innerText = t('unavailable'); }
+    if (buyCritBtn) { buyCritBtn.disabled = true; buyCritBtn.innerText = t('unavailable'); }
+    if (buyDroneBtn) { buyDroneBtn.disabled = true; buyDroneBtn.innerText = t('unavailable'); }
+    if (buyFrenzyBtn) { buyFrenzyBtn.disabled = true; buyFrenzyBtn.innerText = t('unavailable'); }
+    if (buyBgMoazBtn) { buyBgMoazBtn.disabled = true; buyBgMoazBtn.innerText = t('unavailable'); }
+    if (buyBgGoatBtn) { buyBgGoatBtn.disabled = true; buyBgGoatBtn.innerText = t('unavailable'); }
+    if (buyBgShakhtarBtn) { buyBgShakhtarBtn.disabled = true; buyBgShakhtarBtn.innerText = t('unavailable'); }
   } else {
     if (buyMultiplierBtn) buyMultiplierBtn.disabled = points < costs.multiplier;
     if (buyTimeBtn) buyTimeBtn.disabled = points < costs.time;
     if (buyShieldBtn) buyShieldBtn.disabled = points < costs.shield || hasShield;
     if (buyCritBtn) buyCritBtn.disabled = points < costs.crit || hasCrit;
+    if (buyDroneBtn) buyDroneBtn.disabled = points < costs.drone || autoDroneActive;
+    if (buyFrenzyBtn) buyFrenzyBtn.disabled = points < costs.frenzy;
 
     if (bgMoazUnlocked) {
       if (currentBg === 'moaz') {
-        buyBgMoazBtn.innerText = "Equipped";
+        buyBgMoazBtn.innerText = t('equipped');
         buyBgMoazBtn.disabled = true;
         buyBgMoazBtn.classList.add('equipped-status');
       } else {
-        buyBgMoazBtn.innerText = "Equip";
+        buyBgMoazBtn.innerText = t('equip');
         buyBgMoazBtn.disabled = false;
         buyBgMoazBtn.classList.remove('equipped-status');
       }
     } else {
-      buyBgMoazBtn.innerText = `Buy (${costs.bgMoaz} Pts)`;
+      buyBgMoazBtn.innerText = `${t('buy')} (${costs.bgMoaz} Pts)`;
       buyBgMoazBtn.disabled = points < costs.bgMoaz;
       buyBgMoazBtn.classList.remove('equipped-status');
     }
 
     if (bgGoatUnlocked) {
       if (currentBg === 'goat') {
-        buyBgGoatBtn.innerText = "Equipped";
+        buyBgGoatBtn.innerText = t('equipped');
         buyBgGoatBtn.disabled = true;
         buyBgGoatBtn.classList.add('equipped-status');
       } else {
-        buyBgGoatBtn.innerText = "Equip";
+        buyBgGoatBtn.innerText = t('equip');
         buyBgGoatBtn.disabled = false;
         buyBgGoatBtn.classList.remove('equipped-status');
       }
     } else {
-      buyBgGoatBtn.innerText = `Buy (${costs.bgGoat} Pts)`;
+      buyBgGoatBtn.innerText = `${t('buy')} (${costs.bgGoat} Pts)`;
       buyBgGoatBtn.disabled = points < costs.bgGoat;
       buyBgGoatBtn.classList.remove('equipped-status');
     }
 
     if (bgShakhtarUnlocked) {
       if (currentBg === 'shakhtar') {
-        buyBgShakhtarBtn.innerText = "Equipped";
+        buyBgShakhtarBtn.innerText = t('equipped');
         buyBgShakhtarBtn.disabled = true;
         buyBgShakhtarBtn.classList.add('equipped-status');
       } else {
-        buyBgShakhtarBtn.innerText = "Equip";
+        buyBgShakhtarBtn.innerText = t('equip');
         buyBgShakhtarBtn.disabled = false;
         buyBgShakhtarBtn.classList.remove('equipped-status');
       }
     } else {
-      buyBgShakhtarBtn.innerText = `Buy (${costs.bgShakhtar} Pts)`;
+      buyBgShakhtarBtn.innerText = `${t('buy')} (${costs.bgShakhtar} Pts)`;
       buyBgShakhtarBtn.disabled = points < costs.bgShakhtar;
       buyBgShakhtarBtn.classList.remove('equipped-status');
     }
@@ -543,9 +978,10 @@ function openShop() {
     clearInterval(gameTimer);
     clearInterval(spawnInterval);
     if (moveInterval) clearInterval(moveInterval);
-    if (shopStatusNotice) shopStatusNotice.innerText = "⏸️ GAME PAUSED";
+    if (droneInterval) clearInterval(droneInterval);
+    if (shopStatusNotice) shopStatusNotice.innerText = t('gamePaused');
   } else {
-    if (shopStatusNotice) shopStatusNotice.innerText = "⚡ LOBBY ARMORY (START A ROUND TO BUY)";
+    if (shopStatusNotice) shopStatusNotice.innerText = t('lobbyArmory');
   }
 
   if (shopModal) shopModal.classList.remove('hidden');
@@ -569,6 +1005,7 @@ function resumeTimers() {
 
   spawnInterval = setInterval(() => spawnEntity(), 750);
   moveInterval = setInterval(moveTargets, 50);
+  if (autoDroneActive) startAutoDrone();
 }
 
 function startGame() {
@@ -583,33 +1020,44 @@ function startGame() {
   costs = { ...initialCosts };
   hasShield = false;
   hasCrit = false;
+  autoDroneActive = false;
+  if (droneInterval) clearInterval(droneInterval);
+
   bgMoazUnlocked = false;
   bgGoatUnlocked = false;
   bgShakhtarUnlocked = false;
   currentBg = 'default';
 
-  if (buyMultiplierBtn) buyMultiplierBtn.innerText = `Buy (${costs.multiplier} Pts)`;
-  if (buyTimeBtn) buyTimeBtn.innerText = `Buy (${costs.time} Pts)`;
+  if (buyMultiplierBtn) buyMultiplierBtn.innerText = `${t('buy')} (${costs.multiplier} Pts)`;
+  if (buyTimeBtn) buyTimeBtn.innerText = `${t('buy')} (${costs.time} Pts)`;
   if (buyShieldBtn) {
-    buyShieldBtn.innerText = `Buy (${costs.shield} Pts)`;
+    buyShieldBtn.innerText = `${t('buy')} (${costs.shield} Pts)`;
     buyShieldBtn.disabled = false;
   }
   if (buyCritBtn) {
-    buyCritBtn.innerText = `Buy (${costs.crit} Pts)`;
+    buyCritBtn.innerText = `${t('buy')} (${costs.crit} Pts)`;
     buyCritBtn.disabled = false;
   }
+  if (buyDroneBtn) {
+    buyDroneBtn.innerText = `${t('buy')} (${costs.drone} Pts)`;
+    buyDroneBtn.disabled = false;
+  }
+  if (buyFrenzyBtn) {
+    buyFrenzyBtn.innerText = `${t('buy')} (${costs.frenzy} Pts)`;
+    buyFrenzyBtn.disabled = false;
+  }
   if (buyBgMoazBtn) {
-    buyBgMoazBtn.innerText = `Buy (${costs.bgMoaz} Pts)`;
+    buyBgMoazBtn.innerText = `${t('buy')} (${costs.bgMoaz} Pts)`;
     buyBgMoazBtn.disabled = false;
     buyBgMoazBtn.classList.remove('equipped-status');
   }
   if (buyBgGoatBtn) {
-    buyBgGoatBtn.innerText = `Buy (${costs.bgGoat} Pts)`;
+    buyBgGoatBtn.innerText = `${t('buy')} (${costs.bgGoat} Pts)`;
     buyBgGoatBtn.disabled = false;
     buyBgGoatBtn.classList.remove('equipped-status');
   }
   if (buyBgShakhtarBtn) {
-    buyBgShakhtarBtn.innerText = `Buy (${costs.bgShakhtar} Pts)`;
+    buyBgShakhtarBtn.innerText = `${t('buy')} (${costs.bgShakhtar} Pts)`;
     buyBgShakhtarBtn.disabled = false;
     buyBgShakhtarBtn.classList.remove('equipped-status');
   }
@@ -648,12 +1096,12 @@ function checkInstantLevelPass() {
   }
 
   if (scorePassed && quotaMet) {
-    // Instant Level Pass Triggered!
     isGameActive = false;
     isPaused = false;
     clearInterval(gameTimer);
     clearInterval(spawnInterval);
     if (moveInterval) clearInterval(moveInterval);
+    if (droneInterval) clearInterval(droneInterval);
     clearEntities();
 
     let personalBest = parseInt(localStorage.getItem('tactical_high_score') || '0', 10);
@@ -662,8 +1110,8 @@ function checkInstantLevelPass() {
       localStorage.setItem('tactical_high_score', personalBest);
     }
 
-    if (gameOverTitle) gameOverTitle.innerText = `🎉 LEVEL ${currentLevel} CLEARED!`;
-    if (restartBtn) restartBtn.innerText = "NEXT LEVEL";
+    if (gameOverTitle) gameOverTitle.innerText = `🎉 ${t('levelCleared')}`;
+    if (restartBtn) restartBtn.innerText = t('nextLevel');
     currentLevel++;
     localStorage.setItem('tactical_current_level', currentLevel);
 
@@ -676,7 +1124,7 @@ function checkInstantLevelPass() {
 
 function checkLevelCompletion() {
   if (gameMode === 'freeplay') {
-    endGame("ROUND COMPLETE");
+    endGame(t('roundComplete'));
     return;
   }
 
@@ -685,6 +1133,7 @@ function checkLevelCompletion() {
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
   if (moveInterval) clearInterval(moveInterval);
+  if (droneInterval) clearInterval(droneInterval);
   clearEntities();
 
   let passed = true;
@@ -692,18 +1141,18 @@ function checkLevelCompletion() {
 
   if (points < currentObjective.targetScore) {
     passed = false;
-    failReason = `FAILED: Need ${currentObjective.targetScore.toLocaleString()} Pts (Got ${points.toLocaleString()})`;
+    failReason = `${t('levelFailed')}: Need ${currentObjective.targetScore.toLocaleString()} Pts`;
   } else if (currentObjective.type === 'quota_min') {
     let hits = hitCounts.head[currentObjective.targetPolitician];
     if (hits < currentObjective.requiredHits) {
       passed = false;
-      failReason = `FAILED: Needed ${currentObjective.requiredHits} hits on ${headNames[currentObjective.targetPolitician]} (Got ${hits})`;
+      failReason = `${t('levelFailed')}: Quota not met (${hits}/${currentObjective.requiredHits})`;
     }
   } else if (currentObjective.type === 'quota_cap') {
     let hits = hitCounts.head[currentObjective.targetPolitician];
     if (hits > currentObjective.maxAllowedHits) {
       passed = false;
-      failReason = `FAILED: Exceeded max allowed hits on ${headNames[currentObjective.targetPolitician]} (${hits}/${currentObjective.maxAllowedHits})`;
+      failReason = `${t('levelFailed')}: Hit cap exceeded (${hits}/${currentObjective.maxAllowedHits})`;
     }
   }
 
@@ -714,13 +1163,13 @@ function checkLevelCompletion() {
   }
 
   if (passed) {
-    if (gameOverTitle) gameOverTitle.innerText = `LEVEL ${currentLevel} CLEARED!`;
-    if (restartBtn) restartBtn.innerText = "NEXT LEVEL";
+    if (gameOverTitle) gameOverTitle.innerText = t('levelCleared');
+    if (restartBtn) restartBtn.innerText = t('nextLevel');
     currentLevel++;
     localStorage.setItem('tactical_current_level', currentLevel);
   } else {
     if (gameOverTitle) gameOverTitle.innerText = failReason;
-    if (restartBtn) restartBtn.innerText = "RETRY LEVEL";
+    if (restartBtn) restartBtn.innerText = t('retryLevel');
   }
 
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
@@ -929,7 +1378,7 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
       triggerGunshotFX(clientX, clientY);
       setTimeout(() => {
         if (target.parentNode) target.remove();
-        endGame("LEVEL FAILED: EXCEEDED HIT CAP");
+        endGame(`${t('levelFailed')}: EXCEEDED HIT CAP`);
       }, 200);
       return;
     }
@@ -940,7 +1389,7 @@ function hitTarget(target, clientX, clientY, isGolden, headIndex) {
 
   triggerGunshotFX(clientX, clientY);
   
-  if (isCrit) showPopup(clientX, clientY, `CRIT! +${hitPoints}`, 'crit');
+  if (isCrit) showPopup(clientX, clientY, `${t('critText')} +${hitPoints}`, 'crit');
   else showPopup(clientX, clientY, `+${hitPoints}`, isGolden ? 'gold' : '');
 
   setTimeout(() => { if (target.parentNode) target.remove(); }, 350);
@@ -981,7 +1430,7 @@ function hitFlag(flag, clientX, clientY, flagIndex) {
   checkInstantLevelPass();
 
   triggerGunshotFX(clientX, clientY);
-  showPopup(clientX, clientY, `FLAG! +${flagPoints} & MULT+1!`, 'flag');
+  showPopup(clientX, clientY, `${t('flagText')} +${flagPoints} & MULT+1!`, 'flag');
 
   setTimeout(() => { if (flag.parentNode) flag.remove(); }, 350);
 }
@@ -993,7 +1442,7 @@ function hitBomb(bomb, clientX, clientY) {
   if (hasShield) {
     hasShield = false;
     updateUI();
-    showPopup(clientX, clientY, 'SHIELD BLOCKED!', 'shield');
+    showPopup(clientX, clientY, t('shieldBlocked'), 'shield');
     return;
   }
 
@@ -1011,7 +1460,7 @@ function hitBomb(bomb, clientX, clientY) {
 
   const rect = gameArea.getBoundingClientRect();
   spawnBloodSplatter(clientX - rect.left, clientY - rect.top, true);
-  showPopup(clientX, clientY, 'BOOM! STATS WIPED!', 'penalty');
+  showPopup(clientX, clientY, t('boomWiped'), 'penalty');
 }
 
 function showPopup(x, y, text, customClass) {
@@ -1034,12 +1483,13 @@ function clearEntities() {
   entities.forEach(e => e.remove());
 }
 
-function endGame(titleText = "ROUND COMPLETE") {
+function endGame(titleText = t('roundComplete')) {
   isGameActive = false;
   isPaused = false;
   clearInterval(gameTimer);
   clearInterval(spawnInterval);
   if (moveInterval) clearInterval(moveInterval);
+  if (droneInterval) clearInterval(droneInterval);
   clearEntities();
 
   let personalBest = parseInt(localStorage.getItem('tactical_high_score') || '0', 10);
@@ -1049,7 +1499,7 @@ function endGame(titleText = "ROUND COMPLETE") {
   }
 
   if (gameOverTitle) gameOverTitle.innerText = titleText;
-  if (restartBtn) restartBtn.innerText = gameMode === 'levels' ? "RETRY LEVEL" : "PLAY AGAIN";
+  if (restartBtn) restartBtn.innerText = gameMode === 'levels' ? t('retryLevel') : t('playAgain');
   if (finalScoreDisplay) finalScoreDisplay.innerText = points;
   if (personalBestDisplay) personalBestDisplay.innerText = personalBest;
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
